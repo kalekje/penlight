@@ -1,0 +1,95 @@
+% Kale Ewasiuk (kalekje@gmail.com)
+% 2021-09-20
+%
+% Copyright (C) 2021 Kale Ewasiuk
+%
+% Permission is hereby granted, free of charge, to any person obtaining a copy
+% of this software and associated documentation files (the "Software"), to deal
+% in the Software without restriction, including without limitation the rights
+% to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+% copies of the Software, and to permit persons to whom the Software is
+% furnished to do so, subject to the following conditions:
+%
+% The above copyright notice and this permission notice shall be included in
+% all copies or substantial portions of the Software.
+%
+% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+% ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+% TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+% PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT
+% SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR
+% ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+% ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+% OR OTHER DEALINGS IN THE SOFTWARE.
+
+\documentclass{article}
+\usepackage{url}
+\begin{document}
+
+    \section*{Penlight -- Lua libraries for use in LuaLaTeX}
+    v. 2021-09-20, Kale Ewasiuk, \url{kalekje@gmail.com}\\\\
+
+        The official documentation for the Lua library can be found here:\\
+  \mbox{\url{https://stevedonovan.github.io/Penlight/api/manual/01-introduction.md.html#}}
+    \\
+
+    \subsection*{Required Package Option}
+    The first option sent to this package MUST be one of: \\
+    \texttt{[penlight]} \ \ \  or \ \ \  \texttt{[pl]}.\\
+    All Penlight sub-modules are then available under this global variable by either\\
+    \texttt{penlight.XYZ} or \texttt{pl.XYZ}
+
+
+
+    \subsection*{Additional Package Options}
+
+    \noindent
+    \begin{tabular}{lp{4.5in}}
+    \texttt{stringx} & will import additional string functions into the string meta table.\\
+                    & this will be ran in pre-amble: \texttt{require('pl.stringx').import()}\\
+                        & \hspace*{-4em}\url{https://stevedonovan.github.io/Penlight/api/libraries/pl.stringx.html}\\\\
+    \texttt{format} & allows \% operator for Python-style string formating\\
+            & this will be ran in pre-amble: \texttt{require('pl.text').format\_operator()}\\
+                & \hspace*{-4em}\url{https://stevedonovan.github.io/Penlight/api/libraries/pl.text.html}\\\\
+    \texttt{func} & allows placehold expressions eg. \texttt{\_1+1} to be used \\
+                & this will be ran in pre-amble: \texttt{penlight.utils.import('pl.func')}\\
+                & \hspace*{-4em}\url{https://stevedonovan.github.io/Penlight/api/libraries/pl.func.html}\\\\
+    \texttt{extras} & adds some additional functions. Adds functions to some Penlight sub-modules. The following Lua globals will be defined:
+                \texttt{close\_bkt\_cnt,
+                    add\_bkt\_cnt,
+                    reset\_bkt\_cnt,
+                    \_NumBkts,
+                \_xTrue,
+                \_xFalse,
+                \_xNoValue,
+                \_\_SKIP\_TEX\_\_,
+                hasval,
+                mod, mod2,
+                }\\
+    \end{tabular}
+    \\\\
+
+    If you want to use Penlight (and extras) with the \texttt{texlua} intrepreter (no document made, only for Lua files, useful for testing),
+    you can access it by the following:
+     \begin{verbatim}
+    package.path = package.path .. ';'..'path/to/texmf/tex/latex/penlight/?.lua'
+    penlight = require('penlight')
+    __SKIP_TEX__ = true  --only required if you want to use
+                         --penlightextras without a LaTeX run
+    require('penlightextras')
+    \end{verbatim}
+
+
+
+
+
+    \section*{}
+    Disclaimer: I am not the author of the Lua Penlight library.
+    Penlight is Copyright \textcopyright  2009-2016 Steve Donovan, David Manura.
+    The distribution of Penlight used for this library is:
+\url{https://github.com/lunarmodules/penlight}\\
+    The author of this library has merged all Lua sub-modules into one file for this package.
+
+
+\end{document}
