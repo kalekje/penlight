@@ -1,6 +1,5 @@
 % Kale Ewasiuk (kalekje@gmail.com)
-% 2021-09-20
-%
+% +REVDATE+
 % Copyright (C) 2021 Kale Ewasiuk
 %
 % Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,12 +22,42 @@
 % OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 % OR OTHER DEALINGS IN THE SOFTWARE.
 
-\documentclass{article}
-\usepackage{url}
-\begin{document}
 
-    \section*{Penlight -- Lua libraries for use in LuaLaTeX}
-    v. 2021-09-20, Kale Ewasiuk, \url{kalekje@gmail.com}\\\\
+\documentclass[11pt,parskip=half]{scrartcl}
+\setlength{\parindent}{0ex}
+\newcommand{\llcmd}[1]{\leavevmode\llap{\texttt{\detokenize{#1}\ }}}
+\newcommand{\cmd}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\qcmd}[1]{``\cmd{#1}''}
+\usepackage{url}
+\usepackage{showexpl}
+\lstset{explpreset={justification=\raggedright,pos=r,wide=true}}
+\setlength\ResultBoxRule{0mm}
+\lstset{
+	language=[LaTeX]TeX,
+	basicstyle=\ttfamily\small,
+	commentstyle=\ttfamily\small\color{gray},
+	frame=none,
+	numbers=left,
+	numberstyle=\ttfamily\small\color{gray},
+	prebreak=\raisebox{0ex}[0ex][0ex]{\color{gray}\ensuremath{\hookleftarrow}},
+	extendedchars=true,
+	breaklines=true,
+	tabsize=4,
+}
+\addtokomafont{title}{\raggedright}
+\addtokomafont{author}{\raggedright}
+\addtokomafont{date}{\raggedright}
+\author{Kale Ewasiuk (\url{kalekje@gmail.com})}
+\usepackage[yyyymmdd]{datetime}\renewcommand{\dateseparator}{--}
+\date{\today}
+
+
+\RequirePackage{penlight}
+\title{penlight}
+\subtitle{Lua libraries for use in LuaLaTeX}
+
+\begin{document}
+\maketitle
 
         The official documentation for the Lua library can be found here:\\
   \mbox{\url{https://stevedonovan.github.io/Penlight/api/manual/01-introduction.md.html#}}
