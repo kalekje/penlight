@@ -1,11 +1,114 @@
+
+__SKIP_TEX__ = __SKIP_TEX__ or false --if declared true before here, it will use regular print functions
+--                                       (for troubleshooting with texlua instead of actual use in lua latex)
+
 -- requires penlight
 local pl = _G['penlight'] or _G['pl'] -- penlight for this namespace is pl
-local bind = bind or pl.func.bind
 
--- some bonus string operations, % text operator, and functional programmng
+-- some bonus string operations, % text operator, and functional programming
 pl.stringx.import()
 pl.text.format_operator()
 pl.utils.import('pl.func')
+COMP = require'pl.comprehension'.new()
+
+-- http://lua-users.org/wiki/SplitJoin -- todo read me!!
+
+-- iterators
+kpairs = utils.kpairs
+npairs = utils.npairs
+--enum = utils.enum
+
+local bind = bind or pl.func.bind
+
+
+function hasval(x)  -- if something has value
+    if (type(x) == 'function') or (type(x) == 'CFunction') or (type(x) == 'userdata') then
+        return true
+    elseif (x == nil) or (x == false) or (x == 0) or (x == '') or (x == {}) then
+        return false
+    elseif (type(x) ~= 'boolean') and (type(x) ~= 'number') and (type(x) ~= 'string') then  -- something else? maybe ths not needed
+        if #x == 0 then -- one more check, probably no needed though, I was trying to cover other classes but they all tables
+            return false
+        else
+            return true
+        end
+    end
+    return true
+end
+
+function string.totable(str)
+    local t = {}
+    for i = 1, #str do
+        t[i] = str:sub(i, i)
+    end
+    return t
+end
+
+-- Some simple and helpful LaTeX functions -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+-- xparse defaults
+_xTrue = '\\BooleanTrue '
+_xFalse = '\\BooleanFalse '
+_xNoValue = '-NoValue-'
+
+--Generic LuaLaTeX utilities for print commands or environments
+
+if not __SKIP_TEX__ then
+    local function check_special_chars(s) -- todo extend to toher special chars?
+        if type(s) == 'string' then
+            if string.find(s, '[\n\r\t\0]') then
+                pkgwarn('penlight', 'printing string with special (eg. newline) char, possible unexpected behaviour on string: '..s)
+            end
+        end
+    end
+
+    -- NOTE: usage is a bit different than default. If number is first arg, you CANT change catcode.
+    --              We don't need that under normal use, use tex.print or tex.sprint if you need
+    function prt(s, ...) -- print something, no new line after
+        check_special_chars(s)
+        if type(s) == 'number' then s = tostring(s) end
+        tex.sprint(s, ...)     --can print lists as well, but will NOT put new line between them or anything printed
+    end
+
+    function prtn(s, ...) -- print with new line after, can print lists or nums. C-function not in Lua, apparantly
+        s = s or ''
+        check_special_chars(s)
+        if type(s) == 'number' then s = tostring(s) end
+        tex.print(s, ...)
+    end
+
+    wrt = texio.write
+    wrtn = texio.write_nl
+else
+    prt = io.write
+    prtn = print     --print with new line
+    wrt = io.write
+    wrtn = io.write_nl
+end
+
+function prtl(str) -- prints a literal/lines string in latex, adds new line between them
+    for line in str:gmatch"[^\n]*" do  -- gets all characters up to a new line
+        prtn(line)
+    end
+end
+
+-- todo option to specify between character? one for first table, on for recursives?
+function prtt(tab, d1, d2) -- prints a table with new line between each item
+    d1 = d1 or ''
+    d2 = d2 or '\\leavevmode\\\\'
+    for _, t in pairs(tab) do  --
+        if type(t) ~= 'table' then
+            if d1 == '' then
+                prtn(t)
+            else
+                prt(t, d1)
+            end
+         else
+            prtn(d2)
+            prtt(t,d1,d2)
+        end
+    end
+end
 
 function help_wrt(s1, s2) -- helpful printing, makes it easy to debug, s1 is object, s2 is note
     local wrt = wrt or texio.write_nl
@@ -20,18 +123,249 @@ function help_wrt(s1, s2) -- helpful printing, makes it easy to debug, s1 is obj
     wrt('\n^^^^^\n')
 end
 
-
 function prt_array2d(t)
     for _, r in ipairs(t) do
         local s = ''
         for _, v in ipairs(r) do
             s = s.. tostring(v)..', '
         end
-        print(s)
+        prt(s)
+        prt('\n')
     end
 end
 
 -- -- -- -- --
+
+function pkgwarn(pkg, msg1, msg2)
+    pkg = pkg or ''
+    msg1 = msg1 or ''
+    msg2 = msg2 or ''
+    tex.sprint('\\PackageWarning{'..pkg..'}{'..msg1..'}{'..msg2..'}')
+end
+
+function pkgerror(pkg, msg1, msg2, stop)
+    pkg = pkg or ''
+    msg1 = msg1 or ''
+    msg2 = msg2 or ''
+    stop = hasval(stop)
+    tex.sprint('\\PackageError{'..pkg..'}{'..msg1..'}{'..msg2..'}')
+    if stop then tex.sprint('\\stop') end -- stop on the spot (say that 10 times)
+end
+
+
+--definition helpers -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+function defcmd(cs, val) -- simple definitions
+    val = val or ''
+    token.set_macro(cs, val, 'global')
+end
+
+function prvcmd(cs, val) -- provide command via lua
+   if token.is_defined(cs) then
+       -- do nothing if token is defined already --pkgwarn('penlight', 'Definition '..cs..' is being overwritten')
+    else
+        defcmd(cs, val)
+    end
+end
+
+function newcmd(cs, val) -- provide command via lua
+   if token.is_defined(cs) then
+       pkgerror('penlight: newcmd',cs..' already defined')
+    else
+        defcmd(cs, val)
+    end
+end
+
+function renewcmd(cs, val) -- provide command via lua
+   if token.is_defined(cs) then
+        defcmd(cs, val)
+    else
+        pkgerror('penlight: renewcmd',cs..' not defined')
+    end
+end
+
+function deccmd(cs, def, overwrite) -- declare a definition, placeholder throws an error if it used but not set!
+    overwrite = hasval(overwrite)
+    local decfun
+    if overwrite then decfun = defcmd else decfun = newcmd end
+    if def == nil then
+        decfun(cs, pkgerror('penlight', cs..' was declared and used in document, but never set'))
+    else
+        decfun(cs, def)
+    end
+end
+
+
+--
+-- -- todo add and improve this, options for args?
+--local function defcmd_nest(cs) -- for option if you'd like your commands under  a parent ex. \csparent{var}
+--    tex.print('\\gdef\\'..cs..'#1{\\csname '..var..'--#1--\\endcsname}')
+--end
+--
+--
+--local function defcmd(cs, val, nargs)
+--    if (nargs == nil) or (args == 0) then
+--        token.set_macro(cs, tostring(val), 'global')
+--    else
+--        local args = '#1'
+--        tex.print('\\gdef\\'..cs..args..'{'..val..'}')
+--        -- todo https://tex.stackexchange.com/questions/57551/create-a-capitalized-macro-token-using-csname
+--        --    \expandafter\gdef\csname Two\endcsname#1#2{1:#1, two:#2} --todo do it like this
+--    end
+--end
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+
+
+-- Some helpful LaTeX functions
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+
+-- when nesting commands, this makes it helpful to not worry about brackets
+_NumBkts = 0
+--prt(opencmd('textbf')..opencmd('texttt')..'bold typwriter'..close_bkt_cnt())
+
+function opencmd(cmd)
+    return '\\'..cmd..add_bkt_cnt()
+end
+
+function reset_bkt_cnt(n)
+     n = n or 0
+    _NumBkts = n
+end
+
+function add_bkt_cnt(n)
+    -- add open bracket n times, returns brackets
+     n = n or 1
+    _NumBkts = _NumBkts + n
+    return ('{'):rep(n)
+end
+
+function close_bkt_cnt()
+    local s = ('}'):rep(_NumBkts)
+    reset_bkt_cnt()
+    return s
+end
+
+
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+
+
+
+
+
+-- -- -- -- math stuff
+function math.mod(a, b) -- math modulo, return remainder only
+    return a - (math.floor(a/b)*b)
+end
+
+function math.mod2(a) -- math modulo 2
+    return math.mod(a,2)
+end
+
+
+
+-- -- -- -- string stuff
+local lpeg = require"lpeg"
+local P, R, S, V = lpeg.P, lpeg.R, lpeg.S, lpeg.V
+
+local number = P{"number",
+    number = (V"int" * V"frac"^-1 * V"exp"^-1) / tonumber,
+    int = V"sign"^-1 * (R"19" * V"digits" + V"digit"),
+    digits = V"digit" * V"digits" + V"digit",
+    digit = R"09",
+    sign = S"+-",
+    frac = P"." * V"digits",
+    exp = S"eE" * V"sign"^-1 * V"digits",
+    }
+
+
+local str_mt = getmetatable("") -- register functions with str
+
+
+function str_mt.__index.gnum(s)
+    return number:match(s)
+end
+
+function str_mt.__index.gextract(s, pat) --extract a pattern from string, returns both
+    local s_extr = ''
+    local s_rem = s
+    for e in s:gmatch(pat) do
+        s_extr = s_extr..e
+        s_rem = s_rem:gsub(e,'')
+    end
+    return s_extr, s_rem
+end
+
+function str_mt.__index.gfirst(s, t) -- get the first pattern found from a table of pattern
+    for _, pat in pairs(t) do
+        if string.find(s, pat) then
+            return pat
+        end
+    end
+end
+
+function str_mt.__index.appif(S, W, B, O) --append W ord to S tring if B oolean true, otherwise O ther
+    --append Word to String
+    if B then --if b is true
+        S = S .. W
+    else --consider Other word
+        O = O or ''
+        S = S .. O
+    end
+    return S
+end
+
+
+ function str_mt.__index.containsany(s, exp)
+    if type(exp) ~= 'table' then exp = {exp} end
+    for _, e in ipairs(exp) do
+        if s:find(e) then return true end
+    end
+    return false
+end
+
+ function str_mt.__index.containsanycase(s, exp)
+    if type(exp) ~= 'table' then exp = {exp} end
+    for _, e in ipairs(exp) do
+        if s:lower():find(e:lower()) then return true end
+    end
+    return false
+end
+
+
+
+-- -- -- -- function stuff
+
+function pl.clone_function(fn)
+  local dumped = string.dump(fn)
+  local cloned = loadstring(dumped)
+  local i = 1
+  while true do
+    local name = debug.getupvalue(fn, i)
+    if not name then
+      break
+    end
+    debug.upvaluejoin(cloned, i, fn, i)
+    i = i + 1
+  end
+  return cloned
+end
+
+
+-- -- -- -- -- -- -- -- -- -- -- --  functions below extend the operator module
+
+function pl.operator.strgt(a,b) return tostring(a) > tostring(b) end
+function pl.operator.strlt(a,b) return tostring(a) < tostring(b) end
+
+
+
 
 
 -- -- -- --  functions below are helpers for arrays and 2d
@@ -48,79 +382,115 @@ local function comp_2ele_func(op, ele) -- make a 2 element comparison function,
 end
 
 
--- -- -- --
 
-local function check_index(ij, rc) -- converts array index to positive value if negative
-    if type(ij) ~= 'number' then
-        return 1
+
+
+
+function pl.tablex.map_slice(func, T, j1, j2)
+    if type(j1) == 'string' then
+        return pl.array2d.map_slice(func, {T}, ','..j1)[1]
     else
-        if ij < 0 then
-            ij = rc + ij + 1
-        elseif ij > rc then
-            ij = rc
-        end
-        return ij
+        return pl.array2d.map_slice(func, {T}, 1, j1, 1, j2)[1]
     end
 end
-local function check_slice(M, i1, j1, i2, j2) -- ensure a slice is valid; i.e. all positive numbers
-    r, c = pl.array2d.size(M)
-    i1 = check_index(i1, r)
-    i2 = check_index(i2, r)
-    j1 = check_index(j1, c)
-    j2 = check_index(j2, c)
-    return i1, j1, i2, j2
-end
 
-local function check_func(func)  -- check if a function is a PE, if so, make it a function
-    if type(func) ~= 'function' then
-        __func = I(func)
+pl.array2d.map_slice1 = pl.tablex.map_slice
+
+pl.tablex.join = table.concat
+pl.tablex.insert = table.insert
+pl.tablex.remove = table.remove
+pl.tablex.pack = table.pack
+pl.tablex.unpack = table.unpack
+-- make table methods available of tablex. to avoid confusion/ambiguity in use, just use tablex from now on
+
+-- todo option for multiple filters with AND logic, like the filter files??
+function pl.tablex.filterstr(t, exp, case)
+    -- case = case sensitive
+    case = hasval(case)
+    -- apply lua patterns to a table to filter iter
+    -- str or table of str's can be passed, OR logic is used if table is passed
+    if case then
+        return pl.tablex.filter(t, bind(string.containsany,_1,exp))
+    else
+        return pl.tablex.filter(t, bind(string.containsanycase,_1,exp))
     end
-    return __func
 end
 
 
--- -- -- -- -- -- --
--- -- -- --  functions below extend the array2d module
+function pl.filterfiles(...)
+    -- f1 is a series of filtering patterns, or condition
+    -- f2 is a series of filtering patters, or condition
+    -- (f1_a or f2_...) and (f2 .. ) must match
+    local args = table.pack(...)
+    -- todo -- check where boolean is for recursive or not, set starting argument
+    -- this could allow one to omit dir
+    -- todo if no boolean at all, assume dir = '.' and r = false
+    -- if boolean given, assume dir = '.'
+    local nstart = 3
+    local r = args[2]
+    local dir = args[1]
+    if type(args[1]) == 'boolean' then
+        dir = '.'
+        r =  args[1]
+        nstart = 2
+    elseif type(args[2]) ~= 'boolean' then
+        dir = '.'
+        r =  false
+        nstart = 1
+    end
 
-
-local function map_slice1(func, L, i1, i2) -- map a function to a slice of an array, can use PlcExpr
-    i2 = i2 or i1
-    local len = #L
-    i1 = check_index(i1, len)
-    i2 = check_index(i2, len)
-    func = check_func(func)
-    for i in pl.seq.range(i1,i2) do
-            L[i] = func(L[i])
-        end
-   return L
+    local files
+    if r then  files = pl.dir.getallfiles(dir)
+    else files = pl.dir.getfiles(dir)
+    end
+    for i=nstart,args.n do
+        files = pl.tablex.filter(files, pl.func.compose(bind(string.containsanycase,_1, args[i]), pl.path.basename))
+    end
+    return  files
 end
 
-local function map_slice2(func, M, i1, j1, i2, j2) -- map a function to a slice of a Matrix
-    i1, j1, i2, j2 = check_slice(M, i1, j1, i2, j2)
-    --for i,j in array2d.iter(M, true, i1, j1, i2, j2) do  --todo this did not work, penlight may have fixed this
-    func = check_func(func)
-    for i in pl.seq.range(i1,i2) do
-        for j in pl.seq.range(j1,j2) do
-            M[i][j] = func(M[i][j])
-        end
+
+
+
+
+
+-- -- -- -- -- -- -- --  functions below extend the array2d module
+
+
+function pl.array2d.map_slice(func, M, i1, j1, i2, j2) -- map a function to a slice of a Matrix
+    func = pl.utils.function_arg(1, func)
+    for i,j in pl.array2d.iter(M, true, i1, j1, i2, j2) do
+        M[i][j] = func(M[i][j])
     end
    return M
 end
 
-local function map_columns(func, M, j1, j2) -- map function to columns of matrix
-    j2 = j2 or j1
-    return map_slice2(func, M, 1, j1, -1, j2)
+pl.array2d.map_slice2 = pl.array2d.map_slice
+
+function pl.array2d.map_cols(func, M, j1, j2) -- map function to columns of matrix
+    if type(j1) == 'string' then
+        return pl.array2d.map_slice(func, M, ','..j1)
+    else
+        j2 = j2 or -1
+        return pl.array2d.map_slice(func, M, 1, j1, -1, j2)
+    end
 end
 
-local function map_rows(func, M, i1, i2) -- map function to rows of matrix
-    i2 = i2 or i1
-    return map_slice2(func, M, i1, 1, i2, -1)
+pl.array2d.map_columns = pl.array2d.map_cols
+
+function pl.array2d.map_rows(func, M, i1, i2) -- map function to rows of matrix
+    if type(i1) == 'string' then
+        return pl.array2d.map_slice(func, M, i1)
+    else
+        i2 = i2 or -1
+        return pl.array2d.map_slice(func, M, i1, 1, i2, -1)
+    end
 end
 
 
 -- -- -- -- -- -- -- --
 
-function sortOP(M, op, ele) -- sort a 2d array based on operator criteria, ele is column, ie sort on which element
+function pl.array2d.sortOP(M, op, ele) -- sort a 2d array based on operator criteria, ele is column, ie sort on which element
        M_new = {}
         for row in pl.seq.sort(M, comp_2ele_func(op, ele)) do
             M_new[#M_new+1] = row
@@ -128,13 +498,13 @@ function sortOP(M, op, ele) -- sort a 2d array based on operator criteria, ele i
         return M_new
 end
 
-local function like(M1, v)
+function pl.array2d.like(M1, v)
     v = v or 0
     r, c = pl.array2d.size(M1)
     return pl.array2d.new(r,c,v)
 end
 
-local function from_table(t) -- turns a labelled table to a 2d, label-free array
+function pl.array2d.from_table(t) -- turns a labelled table to a 2d, label-free array
     t_new = {}
     for k, v in pairs(t) do
         if type(v) == 'table' then
@@ -150,268 +520,150 @@ local function from_table(t) -- turns a labelled table to a 2d, label-free array
     return t_new
 end
 
-local function toTeX(M, EL) --puts & between columns, can choose to end line with \\ if EL is true (end-line)
+function pl.array2d.toTeX(M, EL) --puts & between columns, can choose to end line with \\ if EL is true (end-line)
     EL = EL or false
     if EL then EL = '\\\\' else EL = '' end
     return pl.array2d.reduce2(_1..EL.._2, _1..'&'.._2, M)..EL
 end
 
+
+local function parse_numpy1d(i1, i2, iS)
+    i1 = tonumber(i1)
+    i2 = tonumber(i2)
+    if iS == ':' then
+        if i1 == nil then i1 = 1 end
+        if i2 == nil then i2 = -1 end
+    else
+        if i1 == nil then
+            i1 = 1
+            i2 = -1
+        else
+            i2 = i1
+        end
+    end
+    return i1, i2
+end
+
+function pl.array2d.parse_numpy2d_str(s)
+    s = s:gsub('%s+', '')
+    _, _, i1, iS, i2, j1, jS, j2 = string.find(s, "(%-?%d*)(:?)(%-?%d*),?(%-?%d*)(:?)(%-?%d*)")
+    i1, i2 = parse_numpy1d(i1, i2, iS)
+    j1, j2 = parse_numpy1d(j1, j2, jS)
+    return i1, j1, i2, j2
+end
+
+
+local _parse_range = pl.clone_function(pl.array2d.parse_range)
+
+function pl.array2d.parse_range(s) -- edit parse range to do numpy string if no letter passed
+    pl.utils.assert_arg(1,s,'string')
+    if not s:find'%a' then
+        return pl.array2d.parse_numpy2d_str(s)
+    end
+    return _parse_range(s)
+end
+
+
+
+
+-- shortcuts
+-- http://stevedonovan.github.io/Penlight/api/libraries/pl.utils.html
+writefile = pl.utils.writefile
+readfile = pl.utils.readfile
+readlines = pl.utils.readfile
+filterfiles = pl.filterfiles
+
+pl.a2 = pl.array2d
+
+-- todo I want some shortcuts here..
+--Tb = pl.tablex
+--A2 = pl.array2d
+--dir = pl.dir
+-- St
 -- -- -- -- -- -- --
 
--- add to array2d module
-pl.array2d['map_columns'] = map_columns
-pl.array2d['map_rows'] = map_rows
-pl.array2d['map_slice2'] = map_slice2
-pl.array2d['map_slice1'] = map_slice1
-pl.array2d['from_table'] = from_table
-pl.array2d['toTeX'] = toTeX
-pl.array2d['sortOP'] = sortOP
-pl.array2d['like'] = like
-
-
-
-
--- -- -- -- -- -- -- -- -- -- -- --  functions below extend the operator module
-
-local function strgt(a,b) return tostring(a) > tostring(b) end
-local function strlt(a,b) return tostring(a) < tostring(b) end
-pl.operator['strgt'] = strgt
-pl.operator['strlt'] = strlt
 
 
 
 
 
-local function gextract(s, pat) --extract a pattern from string, returns both
-    local s_extr = ''
-    local s_rem = s
-    for e in s:gmatch(pat) do
-        s_extr = s_extr..e
-        s_rem = s_rem:gsub(e,'')
-    end
-    return s_extr, s_rem
-end
-
-local function gfirst(s, t) -- get the first pattern found from a table of pattern
-    for _, pat in pairs(t) do
-        if string.find(s, pat) then
-            return pat
-        end
-    end
-end
-
-local function appif(S, W, B, O) --append W ord to S tring if B oolean true, otherwise O ther
-    --append Word to String
-    if B then --if b is true
-        S = S .. W
-    else --consider Other word
-        O = O or ''
-        S = S .. O
-    end
-    return S
-end
-
-local mt = getmetatable("") -- register functions with str
-mt.__index["gextract"] = gextract
-mt.__index["gfirst"] = gfirst
-mt.__index["app_if"] = appif
 
 
-function mod(a, b) -- math modulo, return remainder only
-    return a - (math.floor(a/b)*b)
-end
+-- graveyard
 
-function mod2(a) -- math modulo 2
-    return mod(a,2)
-end
 
-function hasval(x)  -- if something has value
-    if (x == nil) or (x == false) or (x == 0) or (x == '') then
-        return false
-    elseif (type(x) ~= 'number') or (type(x) ~= 'string') then
-        if #x == 0 then
-            return false
+-- luakeys parses individual keys as ipairs, this changes the list to a pure map
+function pl.luakeystomap(t)
+    local t_new = {}
+    for k, v in pairs(t) do
+        if type(k) == 'number' then
+            t_new[v] = true
         else
-            return true
+            t_new[k] = v
         end
     end
-    return true
+    return t_new
 end
-
-
-
-
--- testing here
-____zzz__ = [[
-function hasStrKey(T)
-    --checks if a Table contains a string-type key
-    local hasaStrKey = false
-    for k, v in pairs(T) do  --look through table pairs
-        if type(k) == "string" then  --if any string found, return true
-            hasaStrKey = true
-            break
-        end
-    end
-    return hasaStrKey
-end
-
-
-function any()
-    --todo go through table or list of args and return true of anything is something
-end
-
-function all()
-    --todo go through table or list of args and return true of anything is something
-end
-
-
-    --elseif x == {} then
-    --    return false
-
-n = nil
-b = false
-z = 0
-e = ''
-t = {}
-
---s = 'a'
---n = 1
-
-
-if is(nil) then
-    print('TRUE')
-else
-    print('FALSE')
-end
-
---print({}=={})
---print(0.0==0)
-
-
-]]
-
-
-
-
-
-
-
-
-
-
-
--- Some simple and helpful LaTeX functions
--- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
--- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
--- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
---Generic LuaLaTeX utilities for print commands or environments
--- http://lua-users.org/wiki/SplitJoin -- todo read me!!
-__SKIP_TEX__ = __SKIP_TEX__ or false --if declared true before here, it will use regular print functions
---                                       (for troubleshooting with texlua)
-
--- xparse defaults
-_xTrue = '\\BooleanTrue '
-_xFalse = '\\BooleanFalse '
-_xNoValue = '-NoValue-'
-
-
-if not __SKIP_TEX__ then
-    prt = tex.sprint     --can print lists, but will NOT put new line between them
-    prtn = tex.print      --can print lists and will put new line. C-function not in Lua. think P rint R return
-    wrt = texio.write
-    wrtn = texio.write_nl
-else
-    prt = io.write
-    prtn = print --print with new line
-    wrt = io.write
-    wrtn = io.write_nl
-end
-
-function prtl(str) -- prints a literal string to latex, adds new line between them
-    for line in str:gmatch"[^\n]*" do  -- gets all characters up to a new line
-        prtn(line)
+if luakeys then -- if luakeys is already loaded
+    function luakeys.parseN(s, ...)
+        local t = luakeys.parse(s,...)
+        t = pl.luakeystomap(t)
+        return t
     end
 end
+-- might not be needed
 
 
+    --local func = check_func(func)
+--local function check_func(func)  -- check if a function is a PE, if so, make it a function
+--    if type(func) ~= 'function' then
+--        return I(func)
+--    end
+--    return func
+--end
 
-_NumBkts = 0
-function reset_bkt_cnt(n)
-     n = n or 0
-    _NumBkts = n
-end
-
-function add_bkt_cnt(n)
-     n = n or 1
-    _NumBkts = _NumBkts + n
-end
-
-function close_bkt_cnt()
-    local s = ('}'):rep(_NumBkts)
-    reset_bkt_cnt()
-    return s
-end
+-- -- -- -- -- -- --
+-- -- -- --  functions below extend the array2d module
 
 
+--function pl.array2d.map_slice1(func, L, i1, i2) -- map a function to a slice of an array, can use PlcExpr
+--    i2 = i2 or i1
+--    local len = #L
+--    i1 = check_index(i1, len)
+--    i2 = check_index(i2, len)
+--    func = check_func(func)
+--    for i in pl.seq.range(i1,i2) do
+--            L[i] = func(L[i])
+--        end
+--   return L
+--end
 
+    -- used this below when iter was not working..
+    --i1, j1, i2, j2 = check_slice(M, i1, j1, i2, j2)
+        --for i in pl.seq.range(i1,i2) do
+    --    for j in pl.seq.range(j1,j2) do
+        --end
+    -- penlight may have fixed this
+--local function check_index(ij, rc) -- converts array index to positive value if negative
+--    if type(ij) ~= 'number' then
+--        return 1
+--    else
+--        if ij < 0 then
+--            ij = rc + ij + 1
+--        elseif ij > rc then
+--            ij = rc
+--        elseif ij == 0 then
+--            ij = 1
+--        end
+--        return ij
+--    end
+--end
+--local function check_slice(M, i1, j1, i2, j2) -- ensure a slice is valid; i.e. all positive numbers
+--    r, c = pl.array2d.size(M)
+--    i1 = check_index(i1 or 1, r)
+--    i2 = check_index(i2 or r, r)
+--    j1 = check_index(j1 or 1, c)
+--    j2 = check_index(j2 or c, c)
+--    return i1, j1, i2, j2
+--end
 
-
-
-
-
---definition helpers -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
--- todo add this
-
-local function defcmd_nest(cs) -- for option if you'd like your commands under  a parent ex. \csparent{var}
-    tex.print('\\gdef\\'..cs..'#1{\\csname '..var..'--#1--\\endcsname}')
-end
-
-
-local function defcmd(cs, val, nargs)
-    if (nargs == nil) or (args == 0) then
-        token.set_macro(cs, tostring(val), 'global')
-    else
-        local args = '#1'
-        tex.print('\\gdef\\'..cs..args..'{'..val..'}')
-        -- todo https://tex.stackexchange.com/questions/57551/create-a-capitalized-macro-token-using-csname
-        --    \expandafter\gdef\csname Two\endcsname#1#2{1:#1, two:#2} --todo do it like this
-    end
-end
-
-
-local function prvcmd(cs, val) -- provide command via lua
-   if token.is_defined(cs) then
-        tex.print('\\PackageWarning{YAMLvars}{Variable '..cs..' already defined, could not declare}{}')
-    else
-        defcmd(cs, val)
-    end
-end
-
-
-local function newcmd(cs, val) -- provide command via lua
-   if token.is_defined(cs) then
-        tex.print('\\PackageError{luadefs}{Command '..cs..' already defined}{}')
-    else
-        defcmd(cs, val)
-    end
-end
-
-local function renewcmd(cs, val) -- provide command via lua
-   if token.is_defined(cs) then
-        defcmd(cs, val)
-    else
-        tex.print('\\PackageError{luadefs}{Command '..cs..' already defined}{}')
-    end
-end
-
-local function deccmd(cs, def)
-    if def == nil then
-        prvcmd(cs, '\\PackageError{luadefs}{Command "'..cs..'" was declared and used but, not set}{}')
-    else
-        prvcmd(cs, def)
-    end
-end
-
-
--- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --

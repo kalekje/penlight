@@ -84,20 +84,29 @@
     \texttt{func} & allows placehold expressions eg. \texttt{\_1+1} to be used \\
                 & this will be ran in pre-amble: \texttt{penlight.utils.import('pl.func')}\\
                 & \hspace*{-4em}\url{https://stevedonovan.github.io/Penlight/api/libraries/pl.func.html}\\\\
-    \texttt{extras} & adds some additional functions. Adds functions to some Penlight sub-modules. The following Lua globals will be defined:
-                \texttt{close\_bkt\_cnt,
-                    add\_bkt\_cnt,
-                    reset\_bkt\_cnt,
-                    \_NumBkts,
-                \_xTrue,
-                \_xFalse,
-                \_xNoValue,
-                \_\_SKIP\_TEX\_\_,
-                hasval,
-                mod, mod2,
-                }\\
+    \texttt{extras} & adds some additional functions. Adds functions to some Penlight sub-modules.
     \end{tabular}
     \\\\
+
+    If \cmd{extras} is used, the following Lua globals will be defined:\\
+\llcmd{__SKIP_TEX__}\\
+\llcmd{add_bkt_cnt,}\cmd{close_bkt_cnt, reset_bkt_cnt, _NumBkts,}\\
+\llcmd{_xNoValue,}\cmd{_xTrue,_xFalse}\\
+\llcmd{hasval}\\
+\llcmd{math.mod}\cmd{math.mod2}\\
+\llcmd{kpairs}\\
+\llcmd{string.totable()}\\
+prt
+prtn
+wrt
+wrtn
+prtl
+prtt
+prt_array2d
+help_wrt(s1, s2)
+pkgwarn
+pkgerror
+
 
     If you want to use Penlight (and extras) with the \texttt{texlua} intrepreter (no document made, only for Lua files, useful for testing),
     you can access it by the following:
