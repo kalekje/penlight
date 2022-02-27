@@ -34,9 +34,15 @@
     penlight = require('penlight')
     __PENLIGHT__ = 'penlight'
 }}
+
+
 \DeclareOption{stringx}{\luadirect{_G[__PENLIGHT__].stringx.import()}}
-\DeclareOption{format}{\luadirect{_G[__PENLIGHT__].text.format_operator()}}
+\DeclareOption{format}{\luadirect{_G[__PENLIGHT__].stringx.format_operator()}}
 \DeclareOption{func}{\luadirect{_G[__PENLIGHT__].utils.import(__PENLIGHT__..'.func')}}
 \DeclareOption{extras}{\luadirect{require('penlightextras')}}
+\DeclareOption{extrasnoglobals}{
+    __PL_NO_GLOBALS__ = true
+    \luadirect{require('penlightextras')
+    }}
 
 \ProcessOptions*\relax

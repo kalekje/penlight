@@ -1,6 +1,6 @@
 # penlight  -- Lua libraries for use in LuaLaTeX
 
-This LuaLaTeX package provides a thin-wrapper to use the [penlight](https://github.com/lunarmodules/Penlight) Lua libraries with LuaLaTeX.
+This LuaLaTeX package provides a wrapper to use the [penlight](https://github.com/lunarmodules/Penlight) Lua libraries with LuaLaTeX, with some extra functionality added.
 
 
 # License

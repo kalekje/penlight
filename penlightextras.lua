@@ -2,26 +2,27 @@
 __SKIP_TEX__ = __SKIP_TEX__ or false --if declared true before here, it will use regular print functions
 --                                       (for troubleshooting with texlua instead of actual use in lua latex)
 
+__PL_NO_GLOBALS__ = __PL_NO_GLOBALS__ or false
+
 -- requires penlight
 local pl = _G['penlight'] or _G['pl'] -- penlight for this namespace is pl
+
 
 -- some bonus string operations, % text operator, and functional programming
 pl.stringx.import()
 pl.text.format_operator()
-pl.utils.import('pl.func')
-COMP = require'pl.comprehension'.new()
+pl.utils.import('pl.func') -- allow placeholder expressions _1 +1 etc.
+
+pl.COMP = require'pl.comprehension'.new() -- for comprehensions
 
 -- http://lua-users.org/wiki/SplitJoin -- todo read me!!
 
--- iterators
-kpairs = utils.kpairs
-npairs = utils.npairs
---enum = utils.enum
+pl.tex = {} -- adding a sub-module for tex related stuff
 
 local bind = bind or pl.func.bind
 
 
-function hasval(x)  -- if something has value
+function pl.hasval(x)  -- if something has value
     if (type(x) == 'function') or (type(x) == 'CFunction') or (type(x) == 'userdata') then
         return true
     elseif (x == nil) or (x == false) or (x == 0) or (x == '') or (x == {}) then
@@ -36,20 +37,13 @@ function hasval(x)  -- if something has value
     return true
 end
 
-function string.totable(str)
-    local t = {}
-    for i = 1, #str do
-        t[i] = str:sub(i, i)
-    end
-    return t
-end
 
 -- Some simple and helpful LaTeX functions -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 -- xparse defaults
-_xTrue = '\\BooleanTrue '
-_xFalse = '\\BooleanFalse '
-_xNoValue = '-NoValue-'
+pl.tex._xTrue = '\\BooleanTrue '
+pl.tex._xFalse = '\\BooleanFalse '
+pl.tex._xNoValue = '-NoValue-'
 
 --Generic LuaLaTeX utilities for print commands or environments
 
@@ -57,97 +51,96 @@ if not __SKIP_TEX__ then
     local function check_special_chars(s) -- todo extend to toher special chars?
         if type(s) == 'string' then
             if string.find(s, '[\n\r\t\0]') then
-                pkgwarn('penlight', 'printing string with special (eg. newline) char, possible unexpected behaviour on string: '..s)
+                pl.tex.pkgwarn('penlight', 'printing string with special (eg. newline) char, possible unexpected behaviour on string: '..s)
             end
         end
     end
 
     -- NOTE: usage is a bit different than default. If number is first arg, you CANT change catcode.
     --              We don't need that under normal use, use tex.print or tex.sprint if you need
-    function prt(s, ...) -- print something, no new line after
+    function pl.tex.prt(s, ...) -- print something, no new line after
         check_special_chars(s)
         if type(s) == 'number' then s = tostring(s) end
         tex.sprint(s, ...)     --can print lists as well, but will NOT put new line between them or anything printed
     end
 
-    function prtn(s, ...) -- print with new line after, can print lists or nums. C-function not in Lua, apparantly
+    function pl.tex.prtn(s, ...) -- print with new line after, can print lists or nums. C-function not in Lua, apparantly
         s = s or ''
         check_special_chars(s)
         if type(s) == 'number' then s = tostring(s) end
         tex.print(s, ...)
     end
 
-    wrt = texio.write
-    wrtn = texio.write_nl
+    pl.tex.wrt = texio.write
+    pl.tex.wrtn = texio.write_nl
 else
-    prt = io.write
-    prtn = print     --print with new line
-    wrt = io.write
-    wrtn = io.write_nl
+    pl.tex.prt = io.write
+    pl.tex.prtn = print     --print with new line
+    pl.tex.wrt = io.write
+    pl.tex.wrtn = io.write_nl
 end
 
-function prtl(str) -- prints a literal/lines string in latex, adds new line between them
+function pl.tex.prtl(str) -- prints a literal/lines string in latex, adds new line between them
     for line in str:gmatch"[^\n]*" do  -- gets all characters up to a new line
-        prtn(line)
+        pl.tex.prtn(line)
     end
 end
 
 -- todo option to specify between character? one for first table, on for recursives?
-function prtt(tab, d1, d2) -- prints a table with new line between each item
+function pl.tex.prtt(tab, d1, d2) -- prints a table with new line between each item
     d1 = d1 or ''
     d2 = d2 or '\\leavevmode\\\\'
     for _, t in pairs(tab) do  --
         if type(t) ~= 'table' then
             if d1 == '' then
-                prtn(t)
+                pl.tex.prtn(t)
             else
-                prt(t, d1)
+                pl.tex.prt(t, d1)
             end
          else
-            prtn(d2)
-            prtt(t,d1,d2)
+            pl.tex.prtn(d2)
+            pl.tex.prtt(t,d1,d2)
         end
     end
 end
 
-function help_wrt(s1, s2) -- helpful printing, makes it easy to debug, s1 is object, s2 is note
-    local wrt = wrt or texio.write_nl
-    local wrt = wrt or print
+function pl.tex.help_wrt(s1, s2) -- helpful printing, makes it easy to debug, s1 is object, s2 is note
+    local wrt2 = wrt or texio.write_nl or print
     s2 = s2 or ''
-    wrt('\nvvvvv '..s2..'\n')
+    wrt2('\nvvvvv '..s2..'\n')
     if type(s1) == 'table' then
-        wrt(pl.pretty.write(s1))
+        wrt2(pl.pretty.write(s1))
     else
-        wrt(tostring(s1))
+        wrt2(tostring(s1))
     end
-    wrt('\n^^^^^\n')
+    wrt2('\n^^^^^\n')
 end
 
-function prt_array2d(t)
+function pl.tex.prt_array2d(t)
     for _, r in ipairs(t) do
         local s = ''
         for _, v in ipairs(r) do
             s = s.. tostring(v)..', '
         end
-        prt(s)
-        prt('\n')
+        pl.tex.prt(s)
+        pl.tex.prt('\n')
     end
 end
 
 -- -- -- -- --
 
-function pkgwarn(pkg, msg1, msg2)
+function pl.tex.pkgwarn(pkg, msg1, msg2)
     pkg = pkg or ''
     msg1 = msg1 or ''
     msg2 = msg2 or ''
     tex.sprint('\\PackageWarning{'..pkg..'}{'..msg1..'}{'..msg2..'}')
 end
 
-function pkgerror(pkg, msg1, msg2, stop)
+function pl.tex.pkgerror(pkg, msg1, msg2, stop)
     pkg = pkg or ''
     msg1 = msg1 or ''
     msg2 = msg2 or ''
-    stop = hasval(stop)
+    stop = pl.hasval(stop)
     tex.sprint('\\PackageError{'..pkg..'}{'..msg1..'}{'..msg2..'}')
     if stop then tex.sprint('\\stop') end -- stop on the spot (say that 10 times)
 end
@@ -155,39 +148,39 @@ end
 
 --definition helpers -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-function defcmd(cs, val) -- simple definitions
+function pl.tex.defcmd(cs, val) -- simple definitions
     val = val or ''
     token.set_macro(cs, val, 'global')
 end
 
-function prvcmd(cs, val) -- provide command via lua
+function pl.tex.prvcmd(cs, val) -- provide command via lua
    if token.is_defined(cs) then
        -- do nothing if token is defined already --pkgwarn('penlight', 'Definition '..cs..' is being overwritten')
     else
-        defcmd(cs, val)
+        pl.tex.defcmd(cs, val)
     end
 end
 
-function newcmd(cs, val) -- provide command via lua
+function pl.tex.newcmd(cs, val) -- provide command via lua
    if token.is_defined(cs) then
-       pkgerror('penlight: newcmd',cs..' already defined')
+       pl.tex.pkgerror('penlight: newcmd',cs..' already defined')
     else
-        defcmd(cs, val)
+        pl.tex.defcmd(cs, val)
     end
 end
 
-function renewcmd(cs, val) -- provide command via lua
+function pl.tex.renewcmd(cs, val) -- provide command via lua
    if token.is_defined(cs) then
-        defcmd(cs, val)
+        pl.tex.defcmd(cs, val)
     else
-        pkgerror('penlight: renewcmd',cs..' not defined')
+        pl.tex.pkgerror('penlight: renewcmd',cs..' not defined')
     end
 end
 
-function deccmd(cs, def, overwrite) -- declare a definition, placeholder throws an error if it used but not set!
-    overwrite = hasval(overwrite)
+function pl.tex.deccmd(cs, def, overwrite) -- declare a definition, placeholder throws an error if it used but not set!
+    overwrite = pl.hasval(overwrite)
     local decfun
-    if overwrite then decfun = defcmd else decfun = newcmd end
+    if overwrite then decfun = pl.tex.defcmd else decfun = pl.tex.newcmd end
     if def == nil then
         decfun(cs, pkgerror('penlight', cs..' was declared and used in document, but never set'))
     else
@@ -218,37 +211,34 @@ end
 
 
 
--- Some helpful LaTeX functions
--- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
--- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
--- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
-
 -- when nesting commands, this makes it helpful to not worry about brackets
-_NumBkts = 0
+pl.tex._NumBkts = 0
 --prt(opencmd('textbf')..opencmd('texttt')..'bold typwriter'..close_bkt_cnt())
 
-function opencmd(cmd)
+function pl.tex.opencmd(cmd)
     return '\\'..cmd..add_bkt_cnt()
 end
 
-function reset_bkt_cnt(n)
+function pl.tex.reset_bkt_cnt(n)
      n = n or 0
     _NumBkts = n
 end
 
-function add_bkt_cnt(n)
+function pl.tex.add_bkt_cnt(n)
     -- add open bracket n times, returns brackets
      n = n or 1
     _NumBkts = _NumBkts + n
     return ('{'):rep(n)
 end
 
-function close_bkt_cnt()
-    local s = ('}'):rep(_NumBkts)
-    reset_bkt_cnt()
+function pl.tex.close_bkt_cnt(n)
+    n = n or _NumBkts
+    local s = ('}'):rep(n)
+    _NumBkts = _NumBkts - n
     return s
 end
+
+
 
 
 
@@ -287,7 +277,6 @@ local number = P{"number",
 
 
 local str_mt = getmetatable("") -- register functions with str
-
 
 function str_mt.__index.gnum(s)
     return number:match(s)
@@ -331,13 +320,23 @@ end
     return false
 end
 
- function str_mt.__index.containsanycase(s, exp)
+function str_mt.__index.containsanycase(s, exp)
     if type(exp) ~= 'table' then exp = {exp} end
     for _, e in ipairs(exp) do
         if s:lower():find(e:lower()) then return true end
     end
     return false
 end
+
+function str_mt.__index.totable(str)
+    local t = {}
+    for i = 1, #str do
+        t[i] = str:sub(i, i)
+    end
+    return t
+end
+
+
 
 
 
@@ -359,12 +358,12 @@ function pl.clone_function(fn)
 end
 
 
+
+
 -- -- -- -- -- -- -- -- -- -- -- --  functions below extend the operator module
 
 function pl.operator.strgt(a,b) return tostring(a) > tostring(b) end
 function pl.operator.strlt(a,b) return tostring(a) < tostring(b) end
-
-
 
 
 
@@ -385,6 +384,8 @@ end
 
 
 
+-- table stuff below
+
 
 function pl.tablex.map_slice(func, T, j1, j2)
     if type(j1) == 'string' then
@@ -396,12 +397,6 @@ end
 
 pl.array2d.map_slice1 = pl.tablex.map_slice
 
-pl.tablex.join = table.concat
-pl.tablex.insert = table.insert
-pl.tablex.remove = table.remove
-pl.tablex.pack = table.pack
-pl.tablex.unpack = table.unpack
--- make table methods available of tablex. to avoid confusion/ambiguity in use, just use tablex from now on
 
 -- todo option for multiple filters with AND logic, like the filter files??
 function pl.tablex.filterstr(t, exp, case)
@@ -417,7 +412,7 @@ function pl.tablex.filterstr(t, exp, case)
 end
 
 
-function pl.filterfiles(...)
+function pl.utils.filterfiles(...)
     -- f1 is a series of filtering patterns, or condition
     -- f2 is a series of filtering patters, or condition
     -- (f1_a or f2_...) and (f2 .. ) must match
@@ -448,8 +443,6 @@ function pl.filterfiles(...)
     end
     return  files
 end
-
-
 
 
 
@@ -566,24 +559,67 @@ end
 
 
 
--- shortcuts
+
+
+if not __PL_NO_GLOBALS__ then
+    -- iterators
+    kpairs = pl.utils.kpairs
+    npairs = pl.utils.npairs
+    --enum = utils.enum
+
+    for k,v in pairs(pl.tablex) do  -- extend the table table to contain tablex functions
+        _G['table'][k] = v
+    end
+
+    hasval = pl.hasval
+    COMP = pl.COMP
+
+    -- shortcuts
 -- http://stevedonovan.github.io/Penlight/api/libraries/pl.utils.html
-writefile = pl.utils.writefile
-readfile = pl.utils.readfile
-readlines = pl.utils.readfile
-filterfiles = pl.filterfiles
+    pl.writefile = pl.utils.writefile
+    pl.readfile = pl.utils.readfile
+    pl.readlines = pl.utils.readfile
+    pl.filterfiles = pl.utils.filterfiles
 
-pl.a2 = pl.array2d
-
--- todo I want some shortcuts here..
---Tb = pl.tablex
---A2 = pl.array2d
---dir = pl.dir
--- St
--- -- -- -- -- -- --
+    pl.a2 = pl.array2d
+    pl.tbl = pl.tablex
 
 
+    for k,v in pairs(pl.tex) do  -- make tex functions global
+        _G[k] = v
+    end
 
+    --_xTrue = pl.tex._xTrue
+    --_xFalse = pl.tex._xFalse
+    --_xNoValue = pl.tex._xNoValue
+    --
+    --prt = pl.tex.prt
+    --prtn = pl.tex.prtn
+    --wrt = pl.tex.wrt
+    --wrtn = pl.tex.wrtn
+    --
+    --prtl = pl.tex.prtl
+    --prtt = pl.tex.prtt
+    --
+    --help_wrt = pl.tex.help_wrt
+    --prt_array2d = pl.tex.prt_array2d
+    --
+    --pkgwarn = pl.tex.pkgwarn
+    --pkgerror = pl.tex.pkgerror
+    --
+    --defcmd = pl.tex.defcmd
+    --prvcmd = pl.tex.prvcmd
+    --newcmd = pl.tex.newcmd
+    --renewcmd = pl.tex.renewcmd
+    --deccmd = pl.tex.deccmd
+    --
+    --_NumBkts = pl.tex._NumBkts
+    --opencmd = pl.tex.opencmd
+    --reset_bkt_cnt = pl.tex.reset_bkt_cnt
+    --add_bkt_cnt = pl.tex.add_bkt_cnt
+    --close_bkt_cnt = pl.tex.close_bkt_cnt
+
+end
 
 
 
@@ -593,24 +629,24 @@ pl.a2 = pl.array2d
 
 
 -- luakeys parses individual keys as ipairs, this changes the list to a pure map
-function pl.luakeystomap(t)
-    local t_new = {}
-    for k, v in pairs(t) do
-        if type(k) == 'number' then
-            t_new[v] = true
-        else
-            t_new[k] = v
-        end
-    end
-    return t_new
-end
-if luakeys then -- if luakeys is already loaded
-    function luakeys.parseN(s, ...)
-        local t = luakeys.parse(s,...)
-        t = pl.luakeystomap(t)
-        return t
-    end
-end
+--function pl.luakeystomap(t)
+--    local t_new = {}
+--    for k, v in pairs(t) do
+--        if type(k) == 'number' then
+--            t_new[v] = true
+--        else
+--            t_new[k] = v
+--        end
+--    end
+--    return t_new
+--end
+--if luakeys then -- if luakeys is already loaded
+--    function luakeys.parseN(s, ...)
+--        local t = luakeys.parse(s,...)
+--        t = pl.luakeystomap(t)
+--        return t
+--    end
+--end
 -- might not be needed
 
 

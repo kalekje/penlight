@@ -25,7 +25,7 @@
 
 \documentclass[11pt,parskip=half]{scrartcl}
 \setlength{\parindent}{0ex}
-\newcommand{\llcmd}[1]{\leavevmode\llap{\texttt{\detokenize{#1}\ }}}
+\newcommand{\llcmd}[1]{\leavevmode\llap{\texttt{\detokenize{#1}}}}
 \newcommand{\cmd}[1]{\texttt{\detokenize{#1}}}
 \newcommand{\qcmd}[1]{``\cmd{#1}''}
 \usepackage{url}
@@ -52,7 +52,7 @@
 \date{\today}
 
 
-\RequirePackage{penlight}
+\RequirePackage[pl,extras]{penlight}
 \title{penlight}
 \subtitle{Lua libraries for use in LuaLaTeX}
 
@@ -60,7 +60,7 @@
 \maketitle
 
         The official documentation for the Lua library can be found here:\\
-  \mbox{\url{https://stevedonovan.github.io/Penlight/api/manual/01-introduction.md.html#}}
+  \mbox{\url{https://lunarmodules.github.io/Penlight}}
     \\
 
     \subsection*{Required Package Option}
@@ -70,57 +70,91 @@
     \texttt{penlight.XYZ} or \texttt{pl.XYZ}
 
 
+  
+  \subsection*{texlua usage}
+If you want to use Penlight (and extras) with the \texttt{texlua} intrepreter (no document made, only for Lua files, useful for testing),
+you can access it by setting \cmd{__SKIP_TEX__ = true} and adding the package to path. For example:
+ \begin{verbatim}
+package.path = package.path .. ';'..'path/to/texmf/tex/latex/penlight/?.lua'
+penlight = require('penlight')
+-- below is optional
+__SKIP_TEX__ = true  --only required if you want to use
+                     --penlightextras without a LaTeX run
+-- __PL_NO_GLOBALS__ = true -- optional, skip global definitions
+require('penlightextras')
+\end{verbatim}
 
-    \subsection*{Additional Package Options}
+\pagebreak
+
+
+\subsection*{Additional Package Options}
 
     \noindent
-    \begin{tabular}{lp{4.5in}}
+    \hspace*{-6ex}\begin{tabular}{lp{4.8in}}
     \texttt{stringx} & will import additional string functions into the string meta table.\\
                     & this will be ran in pre-amble: \texttt{require('pl.stringx').import()}\\
-                        & \hspace*{-4em}\url{https://stevedonovan.github.io/Penlight/api/libraries/pl.stringx.html}\\\\
     \texttt{format} & allows \% operator for Python-style string formating\\
-            & this will be ran in pre-amble: \texttt{require('pl.text').format\_operator()}\\
-                & \hspace*{-4em}\url{https://stevedonovan.github.io/Penlight/api/libraries/pl.text.html}\\\\
+            & this will be ran in pre-amble: \texttt{require('pl.stringx').format\_operator()}\\
+      & \mbox{\url{https://lunarmodules.github.io/Penlight/libraries/pl.stringx.html#format_operator}}
+    \\
     \texttt{func} & allows placehold expressions eg. \texttt{\_1+1} to be used \\
                 & this will be ran in pre-amble: \texttt{penlight.utils.import('pl.func')}\\
-                & \hspace*{-4em}\url{https://stevedonovan.github.io/Penlight/api/libraries/pl.func.html}\\\\
-    \texttt{extras} & adds some additional functions. Adds functions to some Penlight sub-modules.
+    & \url{https://lunarmodules.github.io/Penlight/libraries/pl.func}\\
+    \texttt{\llap{extras}noglobals} & does the above three (\cmd{func,stringx,format}); adds some additional functions to \cmd{penlight} module; and adds the \cmd{pl.tex} sub-module.\\
+    \texttt{extras} & does the above \texttt{extrasnoglobals} but makes many of the functions global variables.
     \end{tabular}
-    \\\\
-
-    If \cmd{extras} is used, the following Lua globals will be defined:\\
-\llcmd{__SKIP_TEX__}\\
-\llcmd{add_bkt_cnt,}\cmd{close_bkt_cnt, reset_bkt_cnt, _NumBkts,}\\
-\llcmd{_xNoValue,}\cmd{_xTrue,_xFalse}\\
-\llcmd{hasval}\\
-\llcmd{math.mod}\cmd{math.mod2}\\
-\llcmd{kpairs}\\
-\llcmd{string.totable()}\\
-prt
-prtn
-wrt
-wrtn
-prtl
-prtt
-prt_array2d
-help_wrt(s1, s2)
-pkgwarn
-pkgerror
-
-
-    If you want to use Penlight (and extras) with the \texttt{texlua} intrepreter (no document made, only for Lua files, useful for testing),
-    you can access it by the following:
-     \begin{verbatim}
-    package.path = package.path .. ';'..'path/to/texmf/tex/latex/penlight/?.lua'
-    penlight = require('penlight')
-    __SKIP_TEX__ = true  --only required if you want to use
-                         --penlightextras without a LaTeX run
-    require('penlightextras')
-    \end{verbatim}
 
 
 
 
+\subsection*{Extras}
+
+If \cmd{extras} is used, the following Lua globals will be defined:\\
+
+\subsubsection*{Misc stuff}
+\llcmd{__SKIP_TEX__} If using package with \cmd{texlua}, set this global before loading \cmd{penlight}\\
+\llcmd{__PL_NO_}\cmd{GLOBALS__} If using package with \cmd{texlua} and you don't want to set some globals (described in next sections), set this global before to \cmd{true} loading \cmd{penlight}\\
+\llcmd{hasval(x)} Python-like boolean testing\\
+\llcmd{COMP'xyz'()} Python-like comprehensions:\\\url{https://lunarmodules.github.io/Penlight/libraries/pl.comprehension.html}\\
+\llcmd{math.mod(n,d)}, \cmd{math.mod2(n)} math modulous\\
+\llcmd{string.}\cmd{totable(s)} string a table of characters\\
+\llcmd{kpairs(t), }\cmd{npairs(t)} iterate over keys only, or include nil value from table ipairs\\
+
+\llcmd{pl.utils.}\cmd{filterfiles}\cmd{(dir,filt,rec)} Get files from dir and apply glob-like filters. Set rec to \cmd{true} to include sub directories\\
+
+\pagebreak
+
+\subsubsection*{\cmd{pl.tex.} module is added}
+\llcmd{add_bkt}\cmd{_cnt(n), }\cmd{close_bkt_cnt(n), reset_bkt_cnt} functions to keep track of adding curly brackets as strings. \cmd{add} will return \cmd{n} (default 1) \{'s and increment a counter. \cmd{close} will return \cmd{n} \}'s (default will close all brackets) and decrement.\\
+\llcmd{_NumBkts} internal integer for tracking the number of brackets\\
+\llcmd{opencmd(cs)} prints \cmd{\cs}\{ and adds to the bracket counters.\\
+\\
+\llcmd{_xNoValue,}\cmd{_xTrue,_xFalse}: \cmd{xparse} equivalents for commands\\
+\\
+\llcmd{prt(x),prtn(x)} print without or with a newline at end. Tries to help with special characters or numbers printing.\\
+\llcmd{prtl(l),prtt(t)} print a literal string, or table\\
+\llcmd{wrt(x), wrtn(x)} write to log\\
+\llcmd{help_wrt}\cmd{(s1, s2)} pretty-print something to console. S2 is a flag to help you find.\\
+\llcmd{prt_array2d(tt)} pretty print a 2d array\\
+\\
+\llcmd{pkgwarn}\cmd{(pkg, msg1, msg2)} throw a package warning\\
+\llcmd{pkgerror}\cmd{(pkg, msg1, msg2, stop)} throw a package error. If stop is true, immediately ceases compile.\\
+\\
+\llcmd{defcmd}\cmd{(cs, val)} like \cmd{\gdef}\\
+\llcmd{newcmd}\cmd{(cs, val)} like \cmd{\newcommand}\\
+\llcmd{renewcmd}\cmd{(cs, val)} like \cmd{\renewcommand}\\
+\llcmd{prvcmd}\cmd{(cs, val)} like \cmd{\providecommand}\\
+\llcmd{deccmd}\cmd{(cs, dft, overwrite)} declare a command. If \cmd{dft} (default) is \cmd{nil}, \cmd{cs} is set
+to a package warning saying \cmd{'cs' was declared and used in document, but never set}. If \cmd{overwrite}
+is true, it will overwrite an existing command (using \cmd{defcmd}), otherwise, it will throw error like \cmd{newcmd}.\\
+
+
+
+\subsubsection*{global extras}
+If \cmd{extras} is used and NOT \cmd{extrasnoglobals}, then some globals are set.\\
+All \cmd{pl.tex} modules are added.\\
+\cmd{hasval}, \cmd{COMP}, \cmd{kpairs}, \cmd{npairs} are globals.\\
+\cmd{pl.tablex} functions are added to the \cmd{table} table.\\
 
     \section*{}
     Disclaimer: I am not the author of the Lua Penlight library.
