@@ -1,17 +1,41 @@
+--% Kale Ewasiuk (kalekje@gmail.com)
+--% +REVDATE+
+--% Copyright (C) 2021-2022 Kale Ewasiuk
+--%
+--% Permission is hereby granted, free of charge, to any person obtaining a copy
+--% of this software and associated documentation files (the "Software"), to deal
+--% in the Software without restriction, including without limitation the rights
+--% to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+--% copies of the Software, and to permit persons to whom the Software is
+--% furnished to do so, subject to the following conditions:
+--%
+--% The above copyright notice and this permission notice shall be included in
+--% all copies or substantial portions of the Software.
+--%
+--% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+--% ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+--% TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+--% PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT
+--% SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR
+--% ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+--% ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+--% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+--% OR OTHER DEALINGS IN THE SOFTWARE.
 
 __SKIP_TEX__ = __SKIP_TEX__ or false --if declared true before here, it will use regular print functions
 --                                       (for troubleshooting with texlua instead of actual use in lua latex)
-
 __PL_NO_GLOBALS__ = __PL_NO_GLOBALS__ or false
+__PL_EXTRAS__ = 1
 
 -- requires penlight
 local pl = _G['penlight'] or _G['pl'] -- penlight for this namespace is pl
 
+luakeys = require'luakeys'
 
 -- some bonus string operations, % text operator, and functional programming
 pl.stringx.import()
-pl.text.format_operator()
-pl.utils.import('pl.func') -- allow placeholder expressions _1 +1 etc.
+pl.stringx.format_operator()
+pl.utils.import'pl.func' -- allow placeholder expressions _1 +1 etc.
 
 pl.COMP = require'pl.comprehension'.new() -- for comprehensions
 
@@ -148,10 +172,24 @@ end
 
 --definition helpers -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-function pl.tex.defcmd(cs, val) -- simple definitions
-    val = val or ''
+function pl.tex.defmacro(cs, val) -- , will not work if val contains undefined tokens (so pre-define them if using..)
+    val = val or ''          -- however this works for arbitrary command names (\@hello-123 etc allowed)
     token.set_macro(cs, val, 'global')
 end
+
+
+function pl.tex.defcmd(cs, val) -- fixes above issue, but only chars allowed in cs (and no @)
+    val = val or ''
+    tex.sprint('\\gdef\\'..cs..'{'..val..'}')
+end
+
+function pl.tex.defcmdAT(cs, val) -- allows @ in cs,
+    --however should only be used in preamble. I avoid \makeatother because I've ran into issues with cls and sty files using it.
+    val = val or ''
+    tex.sprint('\\makeatletter\\gdef\\'..cs..'{'..val..'}')
+end
+
+
 
 function pl.tex.prvcmd(cs, val) -- provide command via lua
    if token.is_defined(cs) then
@@ -337,6 +375,9 @@ function str_mt.__index.totable(str)
 end
 
 
+function str_mt.__index.upfirst(str)
+    return str:gsub('%a', function(x) return x:upper()  end, 1)
+end
 
 
 
@@ -561,15 +602,104 @@ end
 
 
 
+-- https://tex.stackexchange.com/questions/38150/in-lualatex-how-do-i-pass-the-content-of-an-environment-to-lua-verbatim
+pl.tex.recordedbuf = ""
+function pl.tex.readbuf(buf)
+    i,j = string.find(buf, '\\end{%w+}')
+     if i==nil then -- if not ending an environment
+        pl.tex.recordedbuf = pl.tex.recordedbuf .. buf .. "\n"
+        return ""
+    else
+        return nil
+    end
+end
+
+function pl.tex.startrecording()
+    pl.tex.recordedbuf = ""
+    luatexbase.add_to_callback('process_input_buffer', pl.tex.readbuf, 'readbuf')
+end
+
+function pl.tex.stoprecording()
+    luatexbase.remove_from_callback('process_input_buffer', 'readbuf')
+    pl.tex.recordedbuf = pl.tex.recordedbuf:gsub("\\end{%w+}\n","")
+end
+
+
+
+__PDFmetadata__ = {}
+pl.tex.add_xspace_intext = true
+
+
+function pl.tex.updatePDFtable(k, v, o)
+    k = k:upfirst()
+    if not pl.hasval(o) and __PDFmetadata__[k] ~= nil then
+        return
+    end
+    __PDFmetadata__[k] = v
+end
+
+pl.tex.writePDFmetadata = function(t) -- write PDF metadata to xmpdata file
+  t = t or __PDFmetadata__
+  local str = ''
+  for k, v in pairs(t) do
+    k = k:upfirst()
+    str = str..'\\'..k..'{'..v..'}'..'\n'
+  end
+  pl.utils.writefile(tex.jobname..'.xmpdata', str)
+end
+
+
+
+function pl.tex.clear_cmds_str(s)
+    return s:gsub('%s+', ' '):gsub('\\\\',' '):gsub('\\%a+',''):gsub('{',' '):gsub('}',' '):gsub('%s+',' '):strip()
+end
+
+function pl.tex.makePDFvarstr(s)
+    s = s:gsub('%s*\\sep%s+','\0'):gsub('%s*\\and%s+','\0')  -- turn \and into \sep
+    s = pl.tex.clear_cmds_str(s)
+    s = s:gsub('\0','\\sep ')
+    pl.tex.help_wrt(s,'PDF var string')
+    return s
+end
+
+function pl.tex.makeInTextstr(s)
+    local s, c_and = s:gsub('%s*\\and%s+','\0')
+    s = pl.tex.clear_cmds_str(s)
+    if pl.tex.add_xspace_intext then
+        s = s..'\\xspace'
+    end
+    if c_and == 1 then
+        s = s:gsub('\0',' and ')
+    elseif c_and > 1 then
+        s = s:gsub('\0',', ', c_and - 1)
+        s = s:gsub('\0',', and ')
+    end
+    pl.tex.help_wrt(s,'in text var string')
+    return s
+end
+
+
+
+
+
+
 if not __PL_NO_GLOBALS__ then
+    __PL_EXTRAS__ = 2
     -- iterators
     kpairs = pl.utils.kpairs
     npairs = pl.utils.npairs
     --enum = utils.enum
 
     for k,v in pairs(pl.tablex) do  -- extend the table table to contain tablex functions
-        _G['table'][k] = v
+        if k == 'sort' then
+            table.sortk = v
+        elseif k == 'move' then
+            table.xmove = v
+        else
+         _G['table'][k] = v
+        end
     end
+    table.join = table.concat -- alias
 
     hasval = pl.hasval
     COMP = pl.COMP
@@ -588,6 +718,12 @@ if not __PL_NO_GLOBALS__ then
     for k,v in pairs(pl.tex) do  -- make tex functions global
         _G[k] = v
     end
+
+end
+
+
+
+
 
     --_xTrue = pl.tex._xTrue
     --_xFalse = pl.tex._xFalse
@@ -618,11 +754,6 @@ if not __PL_NO_GLOBALS__ then
     --reset_bkt_cnt = pl.tex.reset_bkt_cnt
     --add_bkt_cnt = pl.tex.add_bkt_cnt
     --close_bkt_cnt = pl.tex.close_bkt_cnt
-
-end
-
-
-
 
 
 -- graveyard

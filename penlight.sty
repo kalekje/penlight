@@ -1,6 +1,6 @@
 % Kale Ewasiuk (kalekje@gmail.com)
 % +REVDATE+
-% Copyright (C) 2021 Kale Ewasiuk
+% Copyright (C) 2021-2022 Kale Ewasiuk
 %
 % Permission is hereby granted, free of charge, to any person obtaining a copy
 % of this software and associated documentation files (the "Software"), to deal
@@ -32,17 +32,40 @@
 }}
 \DeclareOption{penlight}{\luadirect{
     penlight = require('penlight')
-    __PENLIGHT__ = 'penlight'
+   __PENLIGHT__ = 'penlight'
 }}
 
 
 \DeclareOption{stringx}{\luadirect{_G[__PENLIGHT__].stringx.import()}}
 \DeclareOption{format}{\luadirect{_G[__PENLIGHT__].stringx.format_operator()}}
 \DeclareOption{func}{\luadirect{_G[__PENLIGHT__].utils.import(__PENLIGHT__..'.func')}}
-\DeclareOption{extras}{\luadirect{require('penlightextras')}}
-\DeclareOption{extrasnoglobals}{
+\DeclareOption{extras}{\luadirect{require'penlightextras'}}
+\DeclareOption{extrasnoglobals}{\luadirect{
     __PL_NO_GLOBALS__ = true
-    \luadirect{require('penlightextras')
-    }}
+    require'penlightextras'
+}}
 
 \ProcessOptions*\relax
+
+\luadirect{
+if __PENLIGHT__ == nil then
+    tex.print('\\PackageError{penlight}{penlight or pl option must be passed to penlight as the first option}{}')
+end
+}
+
+
+
+\newcommand{\writePDFmetadata}{\luadirect{writePDFmetadata()}}
+
+\NewDocumentCommand{\writePDFmetadatakv}{ s m }{
+\IfBooleanTF{#1}{% if *, overwrite everything
+  \luadirect{
+    __PDFmetadata__ = luakeys.parse(\luastring{#2})
+      writePDFmetadata()
+  }}{
+    \luadirect{
+    __PDFmetadata__ = __PDFmetadata__ or {}
+    table.update(__PDFmetadata__, luakeys.parse(\luastring{#2}))
+    writePDFmetadata()
+  }}
+}
