@@ -22,15 +22,20 @@
 --% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 --% OR OTHER DEALINGS IN THE SOFTWARE.
 
-__SKIP_TEX__ = __SKIP_TEX__ or false --if declared true before here, it will use regular print functions
+__PL_SKIP_TEX__ = __PL_SKIP_TEX__ or false --if declared true before here, it will use regular print functions
 --                                       (for troubleshooting with texlua instead of actual use in lua latex)
-__PL_NO_GLOBALS__ = __PL_NO_GLOBALS__ or false
+__PL_SKIP_LUAKEYS__ = __PL_SKIP_LUAKEYS__ or false
+__PL_GLOBALS__ = __PL_GLOBALS__ or false
 __PL_EXTRAS__ = 1
+__PL_NO_HYPERREF__ = __PL_NO_HYPERREF__ or false
+-- __PENLIGHT__ = 'penlight' or 'pl'
 
 -- requires penlight
 local pl = _G['penlight'] or _G['pl'] -- penlight for this namespace is pl
 
-luakeys = require'luakeys'
+if not __PL_SKIP_LUAKEYS__ then
+    luakeys = require'luakeys'
+end
 
 -- some bonus string operations, % text operator, and functional programming
 pl.stringx.import()
@@ -71,7 +76,7 @@ pl.tex._xNoValue = '-NoValue-'
 
 --Generic LuaLaTeX utilities for print commands or environments
 
-if not __SKIP_TEX__ then
+if not __PL_SKIP_TEX__ then
     local function check_special_chars(s) -- todo extend to toher special chars?
         if type(s) == 'string' then
             if string.find(s, '[\n\r\t\0]') then
@@ -139,6 +144,7 @@ function pl.tex.help_wrt(s1, s2) -- helpful printing, makes it easy to debug, s1
     end
     wrt2('\n^^^^^\n')
 end
+pl.help_wrt = pl.tex.help_wrt
 
 function pl.tex.prt_array2d(t)
     for _, r in ipairs(t) do
@@ -278,6 +284,47 @@ end
 
 
 
+function pl.tex.aliasluastring(s, d)
+    s = s:delspace():upper():tolist()
+    d = d:delspace():upper():tolist()
+    for i, S in pl.seq.enum(d:slice_assign(1,#s,s)) do
+        if (S == 'E') or (S == 'F') then S = '' end  -- E or F is fully expanded
+        pl.tex.prtn('\\let\\plluastring'..pl.Char(i)..'\\luastring'..S)
+    end
+end
+
+
+
+
+
+function pl.tex.get_ref_info(l)
+    local n = 5
+    if __PL_NO_HYPERREF__ then
+        local n = 2
+    end
+    local r = token.get_macro('r@'..l)
+    local t = {}
+    if r == nil then
+        t = pl.tablex.new(n, 0)  -- make all 0s
+        r = '-not found-'
+    else
+        t = {r:match(("(%b{})"):rep(n))}
+        t = pl.tablex.map(string.trimfl, t)
+    end
+    t[#t+1] = r -- add the og return of label
+    --pl.help_wrt(t, 'ref info')
+    return t
+end
+
+-- todo add regex pattern for cref info
+--function pl.tex.get_ref_info_all_cref(l)
+--    local r = token.get_macro('r@'..l..'@cref')
+--    if r == nil then
+--        return r, 0, 0
+--    end
+--    local sec, page =  r:match("{([^}]*)}{([^}]*)}")
+--    return r, sec, page
+--end
 
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -312,6 +359,17 @@ local number = P{"number",
     frac = P"." * V"digits",
     exp = S"eE" * V"sign"^-1 * V"digits",
     }
+
+
+
+
+function pl.char(num)
+  return string.char(string.byte("a")+num-1)
+end
+
+function pl.Char(num)
+  return string.char(string.byte("A")+num-1)
+end
 
 
 local str_mt = getmetatable("") -- register functions with str
@@ -374,9 +432,21 @@ function str_mt.__index.totable(str)
     return t
 end
 
+function str_mt.__index.tolist(str)
+    return pl.List(str)
+end
+
 
 function str_mt.__index.upfirst(str)
     return str:gsub('%a', function(x) return x:upper()  end, 1)
+end
+
+function str_mt.__index.delspace(str)
+    return str:gsub('%s','')
+end
+
+function str_mt.__index.trimfl(str)
+    return str:sub(2,-2)
 end
 
 
@@ -630,12 +700,11 @@ __PDFmetadata__ = {}
 pl.tex.add_xspace_intext = true
 
 
-function pl.tex.updatePDFtable(k, v, o)
+function pl.tex.updatePDFtable(k, v, o) -- key val overwrite
     k = k:upfirst()
-    if not pl.hasval(o) and __PDFmetadata__[k] ~= nil then
-        return
+    if pl.hasval(o) or (__PDFmetadata__[k] == nil) then
+        __PDFmetadata__[k] = v
     end
-    __PDFmetadata__[k] = v
 end
 
 pl.tex.writePDFmetadata = function(t) -- write PDF metadata to xmpdata file
@@ -658,7 +727,7 @@ function pl.tex.makePDFvarstr(s)
     s = s:gsub('%s*\\sep%s+','\0'):gsub('%s*\\and%s+','\0')  -- turn \and into \sep
     s = pl.tex.clear_cmds_str(s)
     s = s:gsub('\0','\\sep ')
-    pl.tex.help_wrt(s,'PDF var string')
+    --pl.tex.help_wrt(s,'PDF var string')
     return s
 end
 
@@ -674,16 +743,39 @@ function pl.tex.makeInTextstr(s)
         s = s:gsub('\0',', ', c_and - 1)
         s = s:gsub('\0',', and ')
     end
-    pl.tex.help_wrt(s,'in text var string')
+    --pl.tex.help_wrt(s,'in text var string')
     return s
+end
+
+--todo decide on above or below
+
+function pl.tex.list2comma(t)
+    local s = ''
+    if #t == 1 then
+        s = t[1]
+    elseif #t == 2 then
+        s = t:join(' and ')
+    elseif #t >= 3 then
+        s = t:slice(1,#t-1):join(', ')..', and '..t[#t]
+    end
+    return s
+end
+
+function pl.tex.split2comma(s, d)
+    local t = pl.List(s:split(d)):map(string.strip)
+    pl.tex.prt(pl.tex.list2comma(t))
+end
+
+function pl.tex.split2items(s, d)
+    local t = pl.List(s:split(d)):map(string.strip)
+    for n, v in ipairs(t) do
+        pl.tex.prtn('\\item '..v)
+    end
 end
 
 
 
-
-
-
-if not __PL_NO_GLOBALS__ then
+if pl.hasval(__PL_GLOBALS__) then
     __PL_EXTRAS__ = 2
     -- iterators
     kpairs = pl.utils.kpairs
@@ -700,6 +792,13 @@ if not __PL_NO_GLOBALS__ then
         end
     end
     table.join = table.concat -- alias
+    -- todo should tablex have all table functions
+
+    pl.tablex.concat = table.concat
+    pl.tablex.insert = table.insert
+    pl.tablex.maxn = table.maxn
+    pl.tablex.remove = table.remove
+    pl.tablex.sort = table.sort
 
     hasval = pl.hasval
     COMP = pl.COMP

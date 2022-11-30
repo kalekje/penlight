@@ -26,12 +26,15 @@
 
 \RequirePackage{luacode}
 
+\IfFileExists{luakeys.lua}{}{\PackageError{penlight}{This package requires that luakeys be installed}{}}
+
+
 \DeclareOption{pl}{\luadirect{
-    pl = require('penlight')
+    pl = require'penlight'
     __PENLIGHT__ = 'pl'
 }}
 \DeclareOption{penlight}{\luadirect{
-    penlight = require('penlight')
+    penlight = require'penlight'
    __PENLIGHT__ = 'penlight'
 }}
 
@@ -40,8 +43,8 @@
 \DeclareOption{format}{\luadirect{_G[__PENLIGHT__].stringx.format_operator()}}
 \DeclareOption{func}{\luadirect{_G[__PENLIGHT__].utils.import(__PENLIGHT__..'.func')}}
 \DeclareOption{extras}{\luadirect{require'penlightextras'}}
-\DeclareOption{extrasnoglobals}{\luadirect{
-    __PL_NO_GLOBALS__ = true
+\DeclareOption{extrasglobals}{\luadirect{
+    __PL_GLOBALS__ = true
     require'penlightextras'
 }}
 
@@ -49,23 +52,87 @@
 
 \luadirect{
 if __PENLIGHT__ == nil then
-    tex.print('\\PackageError{penlight}{penlight or pl option must be passed to penlight as the first option}{}')
+    tex.sprint('\\PackageError{penlight}{"penlight" or "pl" option must be passed to penlight as the first option}{}')
 end
 }
 
 
 
-\newcommand{\writePDFmetadata}{\luadirect{writePDFmetadata()}}
+\newcommand{\writePDFmetadata}{\luadirect{_G[__PENLIGHT__].tex.writePDFmetadata()}}
 
 \NewDocumentCommand{\writePDFmetadatakv}{ s m }{
 \IfBooleanTF{#1}{% if *, overwrite everything
   \luadirect{
     __PDFmetadata__ = luakeys.parse(\luastring{#2})
-      writePDFmetadata()
+      _G[__PENLIGHT__].tex.writePDFmetadata()
   }}{
     \luadirect{
     __PDFmetadata__ = __PDFmetadata__ or {}
-    table.update(__PDFmetadata__, luakeys.parse(\luastring{#2}))
-    writePDFmetadata()
+    _G[__PENLIGHT__].tablex.update(__PDFmetadata__, luakeys.parse(\luastring{#2}))
+    _G[__PENLIGHT__].tex.writePDFmetadata()
   }}
 }
+
+
+\def\luastringT#1{\luastring{\unexpanded\expandafter\expandafter\expandafter{#1}}}  % expand luastring twice
+\let\luastringF\luastring  % fully expanded luastring
+
+% allow control over expansion of arguments to a latex function
+\NewDocumentCommand{\MakeluastringCommands}{O{} m }{% #1 the desired commands #2 defaults
+  \luadirect{_G[__PENLIGHT__].tex.aliasluastring(\luastring{#2},\luastring{#1})}%
+}
+
+\NewDocumentCommand{\splitToComma}{ O{nn} m m }{%
+  \MakeluastringCommands[nn]{#1}%
+  \luadirect{_G[__PENLIGHT__].tex.split2comma(\plluastringA{#2},\plluastringB{#3})}%
+}
+
+\NewDocumentCommand{\splitToItems}{ O{NN} m m }{%
+  \MakeluastringCommands[nn]{#1}%
+  \luadirect{_G[__PENLIGHT__].tex.split2items(\plluastringA{#2},\plluastringB{#3})}%
+}
+
+
+%
+%
+%\NewDocumentCommand{\tblnew}{m}{\luadirect{
+%  _G[\luastring{#1}] = {}
+%}}
+%
+%\NewDocumentCommand{\tblfrkv}{m m O{} }{\luadirect{
+%  _G[\luastring{#1}] = luakeys.parse(\luastring{#2}, luakeys.parse(\luastring{#3}))
+%}}
+%
+%\NewDocumentCommand{\tblset}{m m m}{\luadirect{
+%  _G[\luastring{#1}][\luastring{#2}] = \luastring{#3}
+%}}
+%
+%\NewDocumentCommand{\tblget}{m m}{\luadirect{
+%  tex.sprint(tostring(_G[\luastring{#1}][\luastring{#2}]))
+%}}
+%
+%\NewDocumentCommand{\tblidx}{m m}{\luadirect{
+%  tex.sprint(tostring(_G[\luastring{#1}][#2]))
+%}}
+%
+%
+%\NewDocumentCommand{\tblupd}{ m m}{\luadirect{
+%  _G[__PENLIGHT__].tablex.update(_G[\luastring{#1}], _G[\luastring{#2}])
+%}}
+%
+%\NewDocumentCommand{\tblupdkv}{ m m }{\luadirect{
+%  _G[__PENLIGHT__].tablex.update(_G[\luastring{#1}], luakeys.parse(\luastring{#2}))
+%}}
+%
+%% todo need a get table function. If blank is passed, the last table referenced is used.
+%\NewDocumentCommand{\tblfrkvII}{ m m m }{\luadirect{
+%  _G[\luastring{#1}] = _G[__PENLIGHT__].tablex.update(luakeys.parse(\luastring{#2}), luakeys.parse(\luastring{#3}))
+%}}
+
+
+%\NewDocumentCommand{\tbldo}{m m O{} }{\luadirect{
+%  % tex.sprint(tostring(_G[\luastring{#1}][#2]))
+%  % todo allow one to use pl tablex function here,
+%  % {tbl}{update}[arg1][arg2]
+%  _G[__PENLIGHT__].tablex[\luastring[#1]](_G[\luastring{}], _G[\luastring{}])
+%}}

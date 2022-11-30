@@ -133,10 +133,11 @@ function _M.parse(text_or_filename, is_file, use_basic)
   end
 
   if is_file then
-    local text_or_filename, err = utils.readfile(text_or_filename)
-    if not text_or_filename then
+    local text, err = utils.readfile(text_or_filename)
+    if not text then
       return nil, err
     end
+    text_or_filename = text
   end
 
   local doc, err = parser(text_or_filename)
@@ -1219,12 +1220,24 @@ end
 --
 -- Note: the path is prefixed, so it is searched first when requiring modules.
 -- @string base optional base directory (absolute, or relative path).
+-- @bool nofollow always use the invocation's directory, even if the invoked file is a symlink
 -- @treturn string the current script's path with a trailing slash
-function app.require_here (base)
-    local p = path.dirname(app.script_name())
+function app.require_here (base, nofollow)
+    local p = app.script_name()
     if not path.isabs(p) then
         p = path.join(path.currentdir(),p)
     end
+    if not nofollow then
+      local t = path.link_attrib(p)
+      if t and t.mode == 'link' then
+        t = t.target
+        if not path.isabs(t) then
+          t = path.join(path.dirname(p), t)
+        end
+        p = t
+      end
+    end
+    p = path.normpath(path.dirname(p))
     if p:sub(-1,-1) ~= path.sep then
         p = p..path.sep
     end
@@ -2583,9 +2596,9 @@ end
 -- This functions mimics the `warn` function added in Lua 5.4.
 -- @function warn
 -- @param ... any arguments
-if not warn then  -- luacheck: ignore
+if not rawget(_G, "warn") then
     local enabled = false
-    local function warn(arg1, ...)  -- luacheck: ignore
+    local function warn(arg1, ...)
         if type(arg1) == "string" and arg1:sub(1, 1) == "@" then
             -- control message
             if arg1 == "@on" then
@@ -2957,7 +2970,7 @@ end
 
 local config = {}
 
---- like io.lines(), but allows for lines to be continued with '\'.
+--- like `io.lines`, but allows for lines to be continued with '`\`'.
 -- @param file a file-like object (anything where read() returns the next line) or a filename.
 -- Defaults to stardard input.
 -- @return an iterator over the lines, or nil
@@ -5993,7 +6006,8 @@ function lapp.process_options_string(str,args)
         elseif check '$<{name} $'  then -- is it <parameter_name>?
             -- so <input file...> becomes input_file ...
             optparm,rest = res.name:match '([^%.]+)(.*)'
-            optparm = optparm:gsub('%A','_')
+            -- follow lua legal variable names
+            optparm = optparm:sub(1,1):gsub('%A','_') .. optparm:sub(2):gsub('%W', '_')
             varargs = rest == '...'
             append(parmlist,optparm)
         end
@@ -6002,6 +6016,7 @@ function lapp.process_options_string(str,args)
             line = res.rest
             res = {}
             local optional
+            local defval_str
             -- do we have ([optional] [<type>] [default <val>])?
             if match('$({def} $',line,res) or match('$({def}',line,res) then
                 local typespec = strip(res.def)
@@ -6044,6 +6059,7 @@ function lapp.process_options_string(str,args)
                 -- optional 'default value' clause. Type is inferred as
                 -- 'string' or 'number' if there's no explicit type
                 if default or match('default $r{rest}',typespec,res) then
+                    defval_str = res.rest
                     defval,vtype = process_default(res.rest,vtype)
                 end
             else -- must be a plain flag, no extra parameter required
@@ -6053,6 +6069,7 @@ function lapp.process_options_string(str,args)
             local ps = {
                 type = vtype,
                 defval = defval,
+                defval_str = defval_str,
                 required = defval == nil and not optional,
                 comment = res.rest or optparm,
                 constraint = constraint,
@@ -6182,6 +6199,9 @@ function lapp.process_options_string(str,args)
         if not ps.used then
             if ps.required then lapp.error("missing required parameter: "..parm) end
             set_result(ps,parm,ps.defval)
+            if builtin_types[ps.type] == "file" then
+                set_result(ps, parm .. "_name", ps.defval_str)
+            end
         end
     end
     return results
@@ -8279,9 +8299,6 @@ end
 -- @string P A file path
 function path.isdir(P)
     assert_string(1,P)
-    if P:match("\\$") then
-        P = P:sub(1,-2)
-    end
     return attrib(P,'mode') == 'directory'
 end
 
@@ -9227,10 +9244,11 @@ function pretty.write (tbl,space,not_clever)
                end
             end
             table.sort(ordered_keys, function (a, b)
-                if type(a) == type(b)  and type(a) == 'string' then
-                    return a < b
+                if type(a) == type(b) then
+                    return tostring(a) < tostring(b)
+                else
+                    return type(a) < type(b)
                 end
-                return type(a) == 'boolean' or (type(b) ~= 'boolean' and type(a) == 'table')
             end)
             local function write_entry (key, val)
                 local tkey = type(key)
@@ -12327,7 +12345,7 @@ local function keys_op(i,v) return i end
 
 --- return all the keys of a table in arbitrary order.
 -- @within Extraction
---  @tab t A table
+-- @tab t A list-like table where the values are the keys of the input table
 function tablex.keys(t)
     assert_arg_iterable(1,t)
     return makelist(tablex.pairmap(keys_op,t))
@@ -12337,7 +12355,7 @@ local function values_op(i,v) return v end
 
 --- return all the values of the table in arbitrary order
 -- @within Extraction
---  @tab t A table
+-- @tab t A list-like table where the values are the values of the input table
 function tablex.values(t)
     assert_arg_iterable(1,t)
     return makelist(tablex.pairmap(values_op,t))
@@ -13425,6 +13443,8 @@ local concat = table.concat
 local _unpack = table.unpack  -- always injected by 'compat'
 local find = string.find
 local sub = string.sub
+local next = next
+local floor = math.floor
 
 local is_windows = compat.is_windows
 local err_mode = 'default'
@@ -13433,7 +13453,7 @@ local operators
 local _function_factories = {}
 
 
-local utils = { _VERSION = "1.12.0" }
+local utils = { _VERSION = "1.13.1" }
 for k, v in pairs(compat) do utils[k] = v  end
 
 --- Some standard patterns
@@ -13635,6 +13655,47 @@ end
 
 
 
+--- an iterator over all non-integer keys (inverse of `ipairs`).
+-- It will skip any key that is an integer number, so negative indices or an
+-- array with holes will not return those either (so it returns slightly less than
+-- 'the inverse of `ipairs`').
+--
+-- This uses `pairs` under the hood, so any value that is iterable using `pairs`
+-- will work with this function.
+-- @tparam table t the table to iterate over
+-- @treturn key
+-- @treturn value
+-- @usage
+-- local t = {
+--   "hello",
+--   "world",
+--   hello = "hallo",
+--   world = "Welt",
+-- }
+--
+-- for k, v in utils.kpairs(t) do
+--   print("German: ", v)
+-- end
+--
+-- -- output;
+-- -- German: hallo
+-- -- German: Welt
+function utils.kpairs(t)
+  local index
+  return function()
+    local value
+    while true do
+      index, value = next(t, index)
+      if type(index) ~= "number" or floor(index) ~= index then
+        break
+      end
+    end
+    return index, value
+  end
+end
+
+
+
 --- Error handling
 -- @section Error-handling
 
@@ -13661,17 +13722,20 @@ function utils.assert_arg (n,val,tp,verify,msg,lev)
     return val
 end
 
---- creates an Enum table.
+--- creates an Enum or constants lookup table for improved error handling.
 -- This helps prevent magic strings in code by throwing errors for accessing
--- non-existing values.
+-- non-existing values, and/or converting strings/identifiers to other values.
 --
--- Calling on the object does the same, but returns a soft error; `nil + err`.
+-- Calling on the object does the same, but returns a soft error; `nil + err`, if
+-- the call is succesful (the key exists), it will return the value.
 --
--- The values are equal to the keys. The enum object is
--- read-only.
--- @param ... strings that make up the enumeration.
--- @return Enum object
--- @usage -- accessing at runtime
+-- When calling with varargs or an array the values will be equal to the keys.
+-- The enum object is read-only.
+-- @tparam table|vararg ... the input for the Enum. If varargs or an array then the
+-- values in the Enum will be equal to the names (must be strings), if a hash-table
+-- then values remain (any type), and the keys must be strings.
+-- @return Enum object (read-only table/object)
+-- @usage -- Enum access at runtime
 -- local obj = {}
 -- obj.MOVEMENT = utils.enum("FORWARD", "REVERSE", "LEFT", "RIGHT")
 --
@@ -13683,21 +13747,81 @@ end
 --   -- "'REVERES' is not a valid value (expected one of: 'FORWARD', 'REVERSE', 'LEFT', 'RIGHT')"
 --
 -- end
--- @usage -- validating user-input
--- local parameter = "...some user provided option..."
--- local ok, err = obj.MOVEMENT(parameter) -- calling on the object
--- if not ok then
---   print("bad 'parameter', " .. err)
+-- @usage -- standardized error codes
+-- local obj = {
+--   ERR = utils.enum {
+--     NOT_FOUND = "the item was not found",
+--     OUT_OF_BOUNDS = "the index is outside the allowed range"
+--   },
+--
+--   some_method = function(self)
+--     return self.ERR.OUT_OF_BOUNDS
+--   end,
+-- }
+--
+-- local result, err = obj:some_method()
+-- if not result then
+--   if err == obj.ERR.NOT_FOUND then
+--     -- check on error code, not magic strings
+--
+--   else
+--     -- return the error description, contained in the constant
+--     return nil, "error: "..err  -- "error: the index is outside the allowed range"
+--   end
+-- end
+-- @usage -- validating/converting user-input
+-- local color = "purple"
+-- local ansi_colors = utils.enum {
+--   black     = 30,
+--   red       = 31,
+--   green     = 32,
+-- }
+-- local color_code, err = ansi_colors(color) -- calling on the object, returns the value from the enum
+-- if not color_code then
+--   print("bad 'color', " .. err)
+--   -- "bad 'color', 'purple' is not a valid value (expected one of: 'black', 'red', 'green')"
 --   os.exit(1)
 -- end
 function utils.enum(...)
-  local lst = utils.pack(...)
-  utils.assert_arg(1, lst[1], "string") -- at least 1 string
-
+  local first = select(1, ...)
   local enum = {}
-  for i, value in ipairs(lst) do
-    utils.assert_arg(i, value, "string")
-    enum[value] = value
+  local lst
+
+  if type(first) ~= "table" then
+    -- vararg with strings
+    lst = utils.pack(...)
+    for i, value in utils.npairs(lst) do
+      utils.assert_arg(i, value, "string")
+      enum[value] = value
+    end
+
+  else
+    -- table/array with values
+    utils.assert_arg(1, first, "table")
+    lst = {}
+    -- first add array part
+    for i, value in ipairs(first) do
+      if type(value) ~= "string" then
+        error(("expected 'string' but got '%s' at index %d"):format(type(value), i), 2)
+      end
+      lst[i] = value
+      enum[value] = value
+    end
+    -- add key-ed part
+    for key, value in utils.kpairs(first) do
+      if type(key) ~= "string" then
+        error(("expected key to be 'string' but got '%s'"):format(type(key)), 2)
+      end
+      if enum[key] then
+        error(("duplicate entry in array and hash part: '%s'"):format(key), 2)
+      end
+      enum[key] = value
+      lst[#lst+1] = key
+    end
+  end
+
+  if not lst[1] then
+    error("expected at least 1 entry", 2)
   end
 
   local valid = "(expected one of: '" .. concat(lst, "', '") .. "')"
@@ -13711,7 +13835,7 @@ function utils.enum(...)
     __call = function(self, key)
       if type(key) == "string" then
         local v = rawget(self, key)
-        if v then
+        if v ~= nil then
           return v
         end
       end
