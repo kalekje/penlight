@@ -42,11 +42,15 @@
 \DeclareOption{stringx}{\luadirect{_G[__PENLIGHT__].stringx.import()}}
 \DeclareOption{format}{\luadirect{_G[__PENLIGHT__].stringx.format_operator()}}
 \DeclareOption{func}{\luadirect{_G[__PENLIGHT__].utils.import(__PENLIGHT__..'.func')}}
-\DeclareOption{extras}{\luadirect{require'penlightextras'}}
+\DeclareOption{extras}{\luadirect{require'penlightextras'}
+  \gdef\penlight@loadextras{}
+}
 \DeclareOption{extrasglobals}{\luadirect{
     __PL_GLOBALS__ = true
     require'penlightextras'
-}}
+  }
+  \gdef\penlight@loadextras{}
+}
 
 \ProcessOptions*\relax
 
@@ -56,9 +60,9 @@ if __PENLIGHT__ == nil then
 end
 }
 
+\ifdefined\penlight@loadextras
 
-
-\newcommand{\writePDFmetadata}{\luadirect{_G[__PENLIGHT__].tex.writePDFmetadata()}}
+\global\newcommand{\writePDFmetadata}{\luadirect{_G[__PENLIGHT__].tex.writePDFmetadata()}}
 
 \NewDocumentCommand{\writePDFmetadatakv}{ s m }{
 \IfBooleanTF{#1}{% if *, overwrite everything
@@ -74,8 +78,8 @@ end
 }
 
 
-\def\luastringT#1{\luastring{\unexpanded\expandafter\expandafter\expandafter{#1}}}  % expand luastring twice
-\let\luastringF\luastring  % fully expanded luastring
+\gdef\luastringT#1{\luastring{\unexpanded\expandafter\expandafter\expandafter{#1}}}  % expand luastring twice
+\global\let\luastringF\luastring  % fully expanded luastring
 
 % allow control over expansion of arguments to a latex function
 \NewDocumentCommand{\MakeluastringCommands}{O{} m }{% #1 the desired commands #2 defaults
@@ -136,3 +140,6 @@ end
 %  % {tbl}{update}[arg1][arg2]
 %  _G[__PENLIGHT__].tablex[\luastring[#1]](_G[\luastring{}], _G[\luastring{}])
 %}}
+
+
+\else\fi

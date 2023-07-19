@@ -58,7 +58,6 @@
 \subtitle{Lua libraries for use in LuaLaTeX}
 
 \begin{document}
-
 %{\Huge todo add split to text example with ltxexample\\reference the exact version of penlight used in this library. consider no globals by default\\ COVERT existing examples to extras globals, document hyperref}
 
 \maketitle
@@ -113,33 +112,32 @@ require'penlightextras'
 
 
 \subsection*{Extras}
+Note: this option is considered experimental.
+The following global variables are defined:
 
-If \cmd{extras} is used, the following Lua globals will be defined:\\
-
-\subsubsection*{Misc stuff}
-\llcmd{__SKIP_TEX__} If using package with \cmd{texlua}, set this global before loading \cmd{penlight}\\
+\llcmd{__SKIP_TEX__} If using the \cmd{penlight} package with \cmd{texlua} (good for troubleshooting), set this global before loading \cmd{penlight}\\
 The gloals flags below are taken care of in the package options:\\
 \llcmd{__PL_}\cmd{GLOBALS__} If using package with \cmd{texlua} and you don't want to set some globals (described in next sections), set this global before to \cmd{true} loading \cmd{penlight}\\
 \cmd{__SKIP_LUAKEYS__}\\
 \cmd{__PL_NO_HYPERREF__}\\
 \cmd{__PL_EXTRAS__} false, 1 or 2\\
 
-\llcmd{hasval(x)} Python-like boolean testing\\
+\subsubsection*{penlight additions}
+
+Some functionality is added to penlight/lua.
+
+\llcmd{pl.hasval(x)} Python-like boolean testing\\
 \llcmd{COMP'xyz'()} Python-like comprehensions:\\\url{https://lunarmodules.github.io/Penlight/libraries/pl.comprehension.html}\\
 \llcmd{math.mod(n,d)}, \cmd{math.mod2(n)} math modulous\\
 \llcmd{string.}\cmd{totable(s)} string a table of characters\\
 \llcmd{string.}\cmd{delspace(s)} clear spaces from string\\
 \llcmd{pl.}\cmd{char(n)} return letter corresponding to 1=a, 2=b, etc.\\
 \llcmd{pl.}\cmd{Char(n)} return letter corresponding to 1=A, 2=B, etc.\\
-\llcmd{kpairs(t), }\cmd{npairs(t)} iterate over keys only, or include nil value from table ipairs\\
-
-
-%{\Large todo document all string helper functions}
 
 \llcmd{pl.utils.}\cmd{filterfiles}\cmd{(dir,filt,rec)} Get files from dir and apply glob-like filters. Set rec to \cmd{true} to include sub directories\\
 
 
-\subsubsection*{\cmd{pl.tex.} module is added}
+\subsubsection*{A \cmd{pl.tex.} module is added}
 \llcmd{add_bkt}\cmd{_cnt(n), }\cmd{close_bkt_cnt(n), reset_bkt_cnt} functions to keep track of adding curly brackets as strings. \cmd{add} will return \cmd{n} (default 1) \{'s and increment a counter. \cmd{close} will return \cmd{n} \}'s (default will close all brackets) and decrement.\\
 \llcmd{_NumBkts} internal integer for tracking the number of brackets\\
 \llcmd{opencmd(cs)} prints \cmd{\cs}\{ and adds to the bracket counters.\\
@@ -164,6 +162,12 @@ to a package warning saying \cmd{'cs' was declared and used in document, but nev
 is true, it will overwrite an existing command (using \cmd{defcmd}), otherwise, it will throw error like \cmd{newcmd}.\\
 \llcmd{get_ref_info(l)}accesses the \cmd{\r@label} and returns a table\\
 
+
+
+\subsubsection*{global extras}
+If \cmd{extrasglobals} is used and NOT \cmd{extras}, many additional globals are set for shortcuts\\
+All \cmd{pl.tex} modules are made global.\\
+\cmd{pl.hasval}, \cmd{pl.COMP}, \cmd{pl.utils.kpairs}, \cmd{pl.utils.npairs} become globals with the function name.\\
 
 
 
@@ -221,10 +225,8 @@ spliToItems:
 \end{LTXexample}
 
 
-\subsubsection*{global extras}
-If \cmd{extrasglobals} is used and NOT \cmd{extras}, many globals are set.\\
-All \cmd{pl.tex} modules are made global.\\
-\cmd{hasval}, \cmd{COMP}, \cmd{kpairs}, \cmd{npairs} are globals.\\
+
+
 
     \section*{}
     Disclaimer: I am not the author of the Lua Penlight library.

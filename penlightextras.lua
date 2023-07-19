@@ -34,8 +34,9 @@ __PL_NO_HYPERREF__ = __PL_NO_HYPERREF__ or false
 local pl = _G['penlight'] or _G['pl'] -- penlight for this namespace is pl
 
 if not __PL_SKIP_LUAKEYS__ then
-    luakeys = require'luakeys'
+    luakeys = require'luakeys'()
 end
+
 
 -- some bonus string operations, % text operator, and functional programming
 pl.stringx.import()
@@ -512,7 +513,7 @@ pl.array2d.map_slice1 = pl.tablex.map_slice
 -- todo option for multiple filters with AND logic, like the filter files??
 function pl.tablex.filterstr(t, exp, case)
     -- case = case sensitive
-    case = hasval(case)
+    case = pl.hasval(case)
     -- apply lua patterns to a table to filter iter
     -- str or table of str's can be passed, OR logic is used if table is passed
     if case then
