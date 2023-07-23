@@ -1,6 +1,6 @@
 % Kale Ewasiuk (kalekje@gmail.com)
 % +REVDATE+
-% Copyright (C) 2021-2022 Kale Ewasiuk
+% Copyright (C) 2021-2023 Kale Ewasiuk
 %
 % Permission is hereby granted, free of charge, to any person obtaining a copy
 % of this software and associated documentation files (the "Software"), to deal
@@ -53,207 +53,56 @@
 \date{\today}
 
 
-\RequirePackage[pl,extras]{penlight}
+\RequirePackage{luacode}
+\RequirePackage[pl,import]{penlight}
 \title{penlight}
 \subtitle{Lua libraries for use in LuaLaTeX}
 
 \begin{document}
-%{\Huge todo add split to text example with ltxexample\\reference the exact version of penlight used in this library. consider no globals by default\\ COVERT existing examples to extras globals, document hyperref}
 
 \maketitle
 
-        Documentation for the Lua library this includes can be found here:\\
-  \mbox{\url{https://lunarmodules.github.io/Penlight}}
-    \\ This package uses version \cmd{1.13.1}
+    Documentation for Penlight can be found here:\\
+\mbox{\url{https://lunarmodules.github.io/Penlight}}
+\\\\ This package uses version \cmd{1.13.1}
 
-    \subsection*{Required Package Option}
-    The first option sent to this package MUST be one of: \\
-    \texttt{[penlight]} \ \ \  or \ \ \  \texttt{[pl]}.\\
-    All Penlight sub-modules are then available under this global variable by either\\
-    \texttt{penlight.XYZ} or \texttt{pl.XYZ}
+\subsection*{Importing Penlight from within LaTeX}
+Loading this package runs the Lua code:  \texttt{penlight = require'penlight'}
 
+Other options for the package are:
+\vspace{1em}
 
-  
-  \subsection*{texlua usage}
-If you want to use Penlight (and extras) with the \texttt{texlua} intrepreter (no document made, only for Lua files, useful for testing),
-you can access it by setting \cmd{__SKIP_TEX__ = true} and adding the package to path. For example:
- \begin{verbatim}
-package.path = package.path .. ';'..'path/to/texmf/tex/latex/penlight/?.lua'
-penlight = require'penlight'
--- below is optional
-__SKIP_TEX__ = true  --only required if you want to use
-                     --penlightextras without a LaTeX run
-__PL_GLOBALS__ = true -- optional, include global definitions
-__SKIP_LUAKEYS__ = true -- luakeys is laoded in penlightextras be default, you may skip it with this
-require'penlightextras'
-\end{verbatim}
-
-\pagebreak
+\hspace*{-6ex}\begin{tabular}{lp{4.8in}}
+\texttt{pl} & adds the alias \texttt{pl = penlight}\\\\
+\texttt{stringx} & will import additional string functions into the string meta table via\\
+                &  \texttt{require('penlight.stringx').import()}\\\\
+\texttt{format} & allows the \% operator for Python-style string formatting via\\
+        & \texttt{require('penlight.stringx').format\_operator()}\\\\
+\texttt{func} & allows placeholder expressions eg. \texttt{\_1+1} to be used via\\
+            &   \texttt{penlight.utils.import(penlight.func)}\\\\
+\texttt{import} & does the above three\\
+\end{tabular}
 
 
-\subsection*{Additional Package Options}
+An example usage is: \cmd{\usepackage[pl,import]{penlight}}
 
-    \noindent
-    \hspace*{-6ex}\begin{tabular}{lp{4.8in}}
-    \texttt{stringx} & will import additional string functions into the string meta table.\\
-                    & this will be ran in pre-amble: \texttt{require('pl.stringx').import()}\\
-    \texttt{format} & allows \% operator for Python-style string formating\\
-            & this will be ran in pre-amble: \texttt{require('pl.stringx').format\_operator()}\\
-      & \mbox{\url{https://lunarmodules.github.io/Penlight/libraries/pl.stringx.html#format_operator}}
-    \\
-    \texttt{func} & allows placehold expressions eg. \texttt{\_1+1} to be used \\
-                & this will be ran in pre-amble: \texttt{penlight.utils.import('pl.func')}\\
-    & \url{https://lunarmodules.github.io/Penlight/libraries/pl.func}\\
-    \texttt{extras} & does the above three (\cmd{func,stringx,format}); adds some additional functions to \cmd{penlight} module; and adds the \cmd{pl.tex} sub-module.\\
-    \texttt{extrasglobals} & does the above \texttt{extras} but makes many of the functions global variables as well.
-    \end{tabular}
+%https://lunarmodules.github.io/Penlight/libraries/pl.func.html
+%https://lunarmodules.github.io/Penlight/libraries/pl.stringx.html
 
+\subsection*{Importing Penlight from within Lua}
+Instead of using penlight.sty, you can simply:\\
+\texttt{penlight = require'penlight'} ~~~ from within Lua.
 
+\newpage
+\section*{}
+This package used to contain \cmd{penlightextras.lua}.
+That functionality now belongs to a standalone package named \cmd{penlightplus}.
 
+\section*{}
+Disclaimer: I am not the author of the Lua Penlight library.
+Penlight is Copyright \textcopyright  2009-2016 Steve Donovan, David Manura.
+The distribution of Penlight used for this library is:
+\url{https://github.com/lunarmodules/penlight}\\\\
+The author of this library has merged all penlight sub-modules into a single file for this distribution.
 
-\subsection*{Extras}
-Note: this option is considered experimental.
-The following global variables are defined:
-
-\llcmd{__SKIP_TEX__} If using the \cmd{penlight} package with \cmd{texlua} (good for troubleshooting), set this global before loading \cmd{penlight}\\
-The gloals flags below are taken care of in the package options:\\
-\llcmd{__PL_}\cmd{GLOBALS__} If using package with \cmd{texlua} and you don't want to set some globals (described in next sections), set this global before to \cmd{true} loading \cmd{penlight}\\
-\cmd{__SKIP_LUAKEYS__}\\
-\cmd{__PL_NO_HYPERREF__}\\
-\cmd{__PL_EXTRAS__} false, 1 or 2\\
-
-\subsubsection*{penlight additions}
-
-Some functionality is added to penlight/lua.
-
-\llcmd{pl.hasval(x)} Python-like boolean testing\\
-\llcmd{COMP'xyz'()} Python-like comprehensions:\\\url{https://lunarmodules.github.io/Penlight/libraries/pl.comprehension.html}\\
-\llcmd{math.mod(n,d)}, \cmd{math.mod2(n)} math modulous\\
-\llcmd{string.}\cmd{totable(s)} string a table of characters\\
-\llcmd{string.}\cmd{delspace(s)} clear spaces from string\\
-\llcmd{pl.}\cmd{char(n)} return letter corresponding to 1=a, 2=b, etc.\\
-\llcmd{pl.}\cmd{Char(n)} return letter corresponding to 1=A, 2=B, etc.\\
-
-\llcmd{pl.utils.}\cmd{filterfiles}\cmd{(dir,filt,rec)} Get files from dir and apply glob-like filters. Set rec to \cmd{true} to include sub directories\\
-
-
-\subsubsection*{A \cmd{pl.tex.} module is added}
-\llcmd{add_bkt}\cmd{_cnt(n), }\cmd{close_bkt_cnt(n), reset_bkt_cnt} functions to keep track of adding curly brackets as strings. \cmd{add} will return \cmd{n} (default 1) \{'s and increment a counter. \cmd{close} will return \cmd{n} \}'s (default will close all brackets) and decrement.\\
-\llcmd{_NumBkts} internal integer for tracking the number of brackets\\
-\llcmd{opencmd(cs)} prints \cmd{\cs}\{ and adds to the bracket counters.\\
-\\
-\llcmd{_xNoValue,}\cmd{_xTrue,_xFalse}: \cmd{xparse} equivalents for commands\\
-\\
-\llcmd{prt(x),prtn(x)} print without or with a newline at end. Tries to help with special characters or numbers printing.\\
-\llcmd{prtl(l),prtt(t)} print a literal string, or table\\
-\llcmd{wrt(x), wrtn(x)} write to log\\
-\llcmd{help_wrt}\cmd{(s1, s2)} pretty-print something to console. S2 is a flag to help you find.\\
-\llcmd{prt_array2d(tt)} pretty print a 2d array\\
-\\
-\llcmd{pkgwarn}\cmd{(pkg, msg1, msg2)} throw a package warning\\
-\llcmd{pkgerror}\cmd{(pkg, msg1, msg2, stop)} throw a package error. If stop is true, immediately ceases compile.\\
-\\
-\llcmd{defcmd}\cmd{(cs, val)} like \cmd{\gdef}\\
-\llcmd{newcmd}\cmd{(cs, val)} like \cmd{\newcommand}\\
-\llcmd{renewcmd}\cmd{(cs, val)} like \cmd{\renewcommand}\\
-\llcmd{prvcmd}\cmd{(cs, val)} like \cmd{\providecommand}\\
-\llcmd{deccmd}\cmd{(cs, dft, overwrite)} declare a command. If \cmd{dft} (default) is \cmd{nil}, \cmd{cs} is set
-to a package warning saying \cmd{'cs' was declared and used in document, but never set}. If \cmd{overwrite}
-is true, it will overwrite an existing command (using \cmd{defcmd}), otherwise, it will throw error like \cmd{newcmd}.\\
-\llcmd{get_ref_info(l)}accesses the \cmd{\r@label} and returns a table\\
-
-
-
-\subsubsection*{global extras}
-If \cmd{extrasglobals} is used and NOT \cmd{extras}, many additional globals are set for shortcuts\\
-All \cmd{pl.tex} modules are made global.\\
-\cmd{pl.hasval}, \cmd{pl.COMP}, \cmd{pl.utils.kpairs}, \cmd{pl.utils.npairs} become globals with the function name.\\
-
-
-
-\subsection*{Macro helpers}
-\cmd{\MakeluastringCommands[def]{spec}} will let \cmd{\plluastring(A|B|C..)} be \cmd{\luastring(N|O|T|F)}
-based on the letters that \cmd{spec} is set to (or \cmd{def} if nothing is provided)
-This is useful if you want to write a command with flexibility on argument expansion.
-The user can specify \cmd{n}, \cmd{o}, \cmd{t}, and \cmd{f} (case insensitve) if they want
-no, once, twice, or full expansion.
-
-%   BELOW IS FOR TROUBLESHOOTING ABOVE
-%\def\NOTexp{\ONEexp}
-%\def\ONEexp{\TWOexp}
-%\def\TWOexp{\TREexp}
-%\def\TREexp{Fully expanded}
-%
-%\NewDocumentCommand{\luastringExpTest}{m m}{
-%  \MakeluastringCommands{#1}
-%  \luadirect{texio.write_nl('VVVVVVVVVVVVVVVVVVVVVVVVVVVVV')}
-%  \luadirect{texio.write_nl(\plluastringA{#2}..' | Not')}
-%  \luadirect{texio.write_nl(\plluastringB{#2}..' | Once')}
-%  \luadirect{texio.write_nl(\plluastringC{#2}..' | Twice')}
-%  \luadirect{texio.write_nl(\plluastringD{#2}..' | Full')}
-%  \luadirect{texio.write_nl('VVVVVVVVVVVVVVVVVVVVVVVVVVVVV')}
-%}
-%
-%\luastringExpTest{ n o t f }{\NOTexp}
-
-
-
-
-\subsection*{Split stuff}
-Splitting text (or a cmd) into oxford comma format via:
-\cmd{\splitToComma[expansion level]{text}{text to split on}}:
-
-\begin{LTXexample}
-
--\splitToComma{  j doe  }{\and}-\\
--\splitToComma{  j doe \and s else  }{\and}-\\
--\splitToComma{  j doe \and s else \and a per }{\and}-\\
--\splitToComma{  j doe \and s else \and a per \and f guy}{\and}-
-
-\def\authors{j doe \and s else \and a per \and f guy}
-\splitToComma[o]{\authors}{\and}
-\end{LTXexample}
-
-The expansion level is up to two characters, \cmd{n|o|t|f}, to control teh expasion of each argument.
-
-\begin{LTXexample}
-spliToItems:
-\begin{itemize}
-  \splitToItems{kale\and john}{\and}
-  \splitToItems{kale -john -someone else}{-}
-\end{itemize}
-\end{LTXexample}
-
-
-
-
-
-    \section*{}
-    Disclaimer: I am not the author of the Lua Penlight library.
-    Penlight is Copyright \textcopyright  2009-2016 Steve Donovan, David Manura.
-    The distribution of Penlight used for this library is:
-\url{https://github.com/lunarmodules/penlight}\\
-    The author of this library has merged all Lua sub-modules into one file for this package.
-
-%  \tblfrkv{tbl_def}{kale=cool,paul=gay,craig=fun}
-%  \tblfrkv{tbl}{kale,paul=gay} %[naked_as_value=true]
-%
-%  \tblget{tbl}{kale}%
-%  \tblget{tbl}{paul}%
-%  \tblget{tbl}{craig}%
-%
-%  \tblupd{tbl_def}{tbl}%
-%
-%  \tblfrkvII{tbl}{kale=cool,paul=gay,craig=fun}{kale=weak,paul=sad}
-%  \tblget{tbl}{craig}%
-%  \tblget{tbl}{paul}%
-%  \tblget{tbl}{kale}%
-%
-%  \NewDocumentCommand{\THINg}{ O{} m}{%
-%    \tblfrkvII{setti}{color=red,size=small}{#1} % make settings and update based on [arg=]
-%    {\color{\tblget{setti}{color}}\tblget{setti}{size} #2}
-%  }
-%
-%  \THINg[color=blue,size=tiny]{Kale}
-  
 \end{document}

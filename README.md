@@ -1,11 +1,11 @@
 # penlight  -- Lua libraries for use in LuaLaTeX
 
-This LuaLaTeX package provides a wrapper to use the [penlight](https://github.com/lunarmodules/Penlight) Lua libraries with LuaLaTeX, with some extra functionality added.
+This LuaLaTeX package provides a wrapper to use the [penlight](https://github.com/lunarmodules/Penlight) Lua libraries with LuaLaTeX.
 
 
 # License
 
-Copyright (C) 2021-2022 Kale Ewasiuk
+Copyright (C) 2021-2023 Kale Ewasiuk
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
