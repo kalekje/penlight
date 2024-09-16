@@ -275,7 +275,7 @@ function Doc:reset()
 end
 
 
---- Append a child to the currrent Node (ignoring current position).
+--- Append a child to the current Node (ignoring current position).
 -- @param child a child node (either text or a document)
 -- @return the current node (`self`)
 -- @usage
@@ -311,7 +311,7 @@ end
 
 
 --- Set attributes of a document node.
--- Will add/overwite values, but will not remove existing ones.
+-- Will add/overwrite values, but will not remove existing ones.
 -- Operates on the Node itself, will not take position into account.
 -- @tparam table t a table containing attribute/value pairs
 -- @return the current node (`self`)
@@ -447,7 +447,7 @@ do
   -- @param self document node to traverse
   -- @param tag tag-name to look for
   -- @param list array table to add the matching ones to
-  -- @param recurse if truthy, recursivly search the node
+  -- @param recurse if truthy, recursively search the node
   local function _children_with_name(self, tag, list, recurse)
     -- TODO: protect against recursion
     for _, child in ipairs(self) do
@@ -942,7 +942,7 @@ local html_empty_elements = { --lists all HTML empty (void) elements
 }
 
 --- Parse a well-formed HTML file as a string.
--- Tags are case-insenstive, DOCTYPE is ignored, and empty elements can be .. empty.
+-- Tags are case-insensitive, DOCTYPE is ignored, and empty elements can be .. empty.
 -- @param s the HTML
 function _M.parsehtml(s)
     return _M.basic_parse(s,false,true)
@@ -1335,7 +1335,7 @@ end
 -- Multiple short args can be combined like so: ( `-abcd`).
 --
 -- When specifying the `flags_valid` parameter, its contents can also contain
--- aliasses, to convert short/long flags to the same output name. See the
+-- aliases, to convert short/long flags to the same output name. See the
 -- example below.
 --
 -- Note: if a flag is repeated, the last value wins.
@@ -1354,7 +1354,7 @@ end
 --      { "hello", "world" },  -- list of flags taking values
 --      { "l", "a", "b"})      -- list of allowed flags (value ones will be added)
 --
--- -- More complex example using aliasses:
+-- -- More complex example using aliases:
 -- local valid = {
 --     long = "l",           -- if 'l' is specified, it is reported as 'long'
 --     new = { "n", "old" }, -- here both 'n' and 'old' will go into 'new'
@@ -1397,16 +1397,16 @@ function app.parse_args (args,flags_with_values, flags_valid)
         valid = setmetatable({},{ __index = function(_, key) return key end })
     else
         valid = {}
-        for k,aliasses in pairs(flags_valid) do
+        for k,aliases in pairs(flags_valid) do
             if type(k) == "number" then         -- array/list entry
-                k = aliasses
+                k = aliases
             end
-            if type(aliasses) == "string" then  -- single alias
-                aliasses = { aliasses }
+            if type(aliases) == "string" then  -- single alias
+                aliases = { aliases }
             end
-            if type(aliasses) == "table" then   -- list of aliasses
+            if type(aliases) == "table" then   -- list of aliases
                 -- it's the alternate name, so add the proper mappings
-                for i, alias in ipairs(aliasses) do
+                for i, alias in ipairs(aliases) do
                     valid[alias] = k
                 end
             end
@@ -1427,7 +1427,7 @@ function app.parse_args (args,flags_with_values, flags_valid)
     end
 
     -- now check that all flags with values are reported as such under all
-    -- of their aliasses
+    -- of their aliases
     for k, main_alias in pairs(valid) do
         if with_values[main_alias] then
             with_values[k] = true
@@ -1696,7 +1696,7 @@ function array2d.flatten (t)
     return makelist(res)
 end
 
---- reshape a 2D array. Reshape the aray by specifying a new nr of rows.
+--- reshape a 2D array. Reshape the array by specifying a new nr of rows.
 -- @array2d t 2d array
 -- @int nrows new number of rows
 -- @bool co use column-order (Fortran-style) (default false)
@@ -1773,7 +1773,7 @@ end
 --- extract the specified columns.
 -- @array2d t 2d array
 -- @tparam {int} cidx a table of column indices
--- @return a new 2d array with the extracted colums
+-- @return a new 2d array with the extracted columns
 function array2d.extract_cols (t,cidx)
     assert_arg(1,t,'table')
     local res = {}
@@ -2097,7 +2097,7 @@ end,
 --------------------
 -- Module: 'pl.class'
 --------------------
---- Provides a reuseable and convenient framework for creating classes in Lua.
+--- Provides a reusable and convenient framework for creating classes in Lua.
 -- Two possible notations:
 --
 --    B = class(A)
@@ -2124,7 +2124,7 @@ local function call_ctor (c,obj,...)
             init = rawget(parent_with_init, '_init')
             parent_with_init = rawget(parent_with_init, '_parent_with_init')
         end
-        if parent_with_init then -- super() points to one above whereever _init came from
+        if parent_with_init then -- super() points to one above wherever _init came from
             rawset(obj,'super',function(obj,...)
                 call_ctor(parent_with_init,obj,...)
             end)
@@ -2970,9 +2970,9 @@ end
 
 local config = {}
 
---- like `io.lines`, but allows for lines to be continued with '`\`'.
+--- like `io.lines`, but allows for lines to be continued with '`\\`'.
 -- @param file a file-like object (anything where read() returns the next line) or a filename.
--- Defaults to stardard input.
+-- Defaults to standard input.
 -- @return an iterator over the lines, or nil
 -- @return error 'not a file-like object' or 'file is nil'
 function config.lines(file)
@@ -3353,7 +3353,7 @@ function data.read(file,cnfg)
 
     -- note that using dot as the thousands separator (@thousands_dot)
     -- requires a special conversion function! For CSV, _empty fields_ are
-    -- considered to default to numerial zeroes.
+    -- considered to default to numerical zeroes.
     local tonumber = tonumber
     local function try_number(x)
         if thousands_dot then x = x:gsub('%.(...)','%1') end
@@ -5327,7 +5327,7 @@ function repr (e,lastpred)
 end
 func.repr = repr
 
--- collect all the non-PE values in this PE into vlist, and replace each occurence
+-- collect all the non-PE values in this PE into vlist, and replace each occurrence
 -- with a constant PH (_C1, etc). Return the maximum placeholder index found.
 local collect_values
 function collect_values (e,vlist)
@@ -5411,13 +5411,20 @@ utils.add_function_factory(_PEMT,func.I)
 func.bind1 = utils.bind1
 func.curry = func.bind1
 
---- create a function which chains two functions.
+--- create a function which chains multiple functions.
 -- @func f a function of at least one argument
 -- @func g a function of at least one argument
+-- @param ... additional functions to compose
 -- @return a function
--- @usage printf = compose(io.write,string.format)
-function func.compose (f,g)
-    return function(...) return f(g(...)) end
+-- @usage printf = compose(io.write, string.format)
+-- @usage printf = compose(io.write, string.lower, string.format)
+function func.compose (...)
+    local args = pack(...)
+    return tablex.reduce(function(f, g)
+      return function(...)
+        return f(g(...))
+      end
+    end, args)
 end
 
 --- bind the arguments of a function to given values.
@@ -5475,7 +5482,7 @@ end,
 --------------------
 --------------
 -- PL loader, for loading all PL libraries, only on demand.
--- Whenever a module is implicitly accesssed, the table will have the module automatically injected.
+-- Whenever a module is implicitly accessed, the table will have the module automatically injected.
 -- (e.g. `_ENV.tablex`)
 -- then that module is dynamically loaded. The submodules are all brought into
 -- the table that is provided as the argument, or returned in a new table.
@@ -5573,7 +5580,7 @@ end,
 --------------------
 --------------
 -- Entry point for loading all PL libraries only on demand, into the global space.
--- Requiring 'pl' means that whenever a module is implicitly accesssed
+-- Requiring 'pl' means that whenever a module is implicitly accessed
 -- (e.g. `utils.split`)
 -- then that module is dynamically loaded. The submodules are all brought into
 -- the global space.
@@ -6872,7 +6879,7 @@ function List:insert(i, x)
     return self
 end
 
---- Insert an item at the begining of the list.
+--- Insert an item at the beginning of the list.
 -- @param x a data item
 -- @return the list
 function List:put (x)
@@ -7282,7 +7289,7 @@ function List:iter ()
     return iter(self)
 end
 
---- Create an iterator over a seqence.
+--- Create an iterator over a sequence.
 -- This captures the Python concept of 'sequence'.
 -- For tables, iterates over all values with integer indices.
 -- @param seq a sequence; a string (over characters), a table, a file object (over lines) or an iterator function
@@ -7637,10 +7644,14 @@ local function makelist(t)
     return setmetatable(t, require('pl.List'))
 end
 
---- list of keys.
+--- return a List of all keys.
+-- @class function
+-- @name Map:keys
 Map.keys = tablex.keys
 
---- list of values.
+--- return a List of all values.
+-- @class function
+-- @name Map:values
 Map.values = tablex.values
 
 --- return an iterator over all key-value pairs.
@@ -7648,7 +7659,7 @@ function Map:iter ()
     return pairs(self)
 end
 
---- return a List of all key-value pairs, sorted by the keys.
+--- return a List of all key-value pairs, sorted by the keys in ascending order.
 function Map:items()
     local ls = makelist(tablex.pairmap (function (k,v) return makelist {k,v} end, self))
     ls:sort(function(t1,t2) return t1[1] < t2[1] end)
@@ -8223,12 +8234,12 @@ local function err_func(name, param, err, code)
 end
 
 --- Lua iterator over the entries of a given directory.
--- Implicit link to [`luafilesystem.dir`](https://keplerproject.github.io/luafilesystem/manual.html#reference)
+-- Implicit link to [`luafilesystem.dir`](https://lunarmodules.github.io/luafilesystem/manual.html#dir)
 -- @function dir
 path.dir = lfs.dir
 
 --- Creates a directory.
--- Implicit link to [`luafilesystem.mkdir`](https://keplerproject.github.io/luafilesystem/manual.html#reference)
+-- Implicit link to [`luafilesystem.mkdir`](https://lunarmodules.github.io/luafilesystem/manual.html#mkdir)
 -- @function mkdir
 path.mkdir = function(d)
   local ok, err, code = lfs.mkdir(d)
@@ -8239,7 +8250,7 @@ path.mkdir = function(d)
 end
 
 --- Removes a directory.
--- Implicit link to [`luafilesystem.rmdir`](https://keplerproject.github.io/luafilesystem/manual.html#reference)
+-- Implicit link to [`luafilesystem.rmdir`](https://lunarmodules.github.io/luafilesystem/manual.html#rmdir)
 -- @function rmdir
 path.rmdir = function(d)
   local ok, err, code = lfs.rmdir(d)
@@ -8250,7 +8261,7 @@ path.rmdir = function(d)
 end
 
 --- Gets attributes.
--- Implicit link to [`luafilesystem.attributes`](https://keplerproject.github.io/luafilesystem/manual.html#reference)
+-- Implicit link to [`luafilesystem.attributes`](https://lunarmodules.github.io/luafilesystem/manual.html#attributes)
 -- @function attrib
 path.attrib = function(d, r)
   local ok, err, code = attrib(d, r)
@@ -8261,7 +8272,7 @@ path.attrib = function(d, r)
 end
 
 --- Get the working directory.
--- Implicit link to [`luafilesystem.currentdir`](https://keplerproject.github.io/luafilesystem/manual.html#reference)
+-- Implicit link to [`luafilesystem.currentdir`](https://lunarmodules.github.io/luafilesystem/manual.html#currentdir)
 -- @function currentdir
 path.currentdir = function()
   local ok, err, code = currentdir()
@@ -8272,7 +8283,7 @@ path.currentdir = function()
 end
 
 --- Gets symlink attributes.
--- Implicit link to [`luafilesystem.symlinkattributes`](https://keplerproject.github.io/luafilesystem/manual.html#reference)
+-- Implicit link to [`luafilesystem.symlinkattributes`](https://lunarmodules.github.io/luafilesystem/manual.html#symlinkattributes)
 -- @function link_attrib
 path.link_attrib = function(d, r)
   local ok, err, code = link_attrib(d, r)
@@ -8285,7 +8296,7 @@ end
 --- Changes the working directory.
 -- On Windows, if a drive is specified, it also changes the current drive. If
 -- only specifying the drive, it will only switch drive, but not modify the path.
--- Implicit link to [`luafilesystem.chdir`](https://keplerproject.github.io/luafilesystem/manual.html#reference)
+-- Implicit link to [`luafilesystem.chdir`](https://lunarmodules.github.io/luafilesystem/manual.html#chdir)
 -- @function chdir
 path.chdir = function(d)
   local ok, err, code = lfs.chdir(d)
@@ -8329,7 +8340,7 @@ end
 
 --- does a path exist?
 -- @string P A file path
--- @return the file path if it exists (either as file, directory, socket, etc), nil otherwise
+-- @return the file path if it exists (either as file, directory, socket, etc), false otherwise
 function path.exists(P)
     assert_string(1,P)
     return attrib(P,'mode') ~= nil and P
@@ -8426,8 +8437,8 @@ end
 -- @string[opt] pwd optional start path to use (default is current dir)
 function path.abspath(P,pwd)
     assert_string(1,P)
-    if pwd then assert_string(2,pwd) end
     local use_pwd = pwd ~= nil
+    if use_pwd then assert_string(2,pwd) end
     if not use_pwd and not currentdir() then return P end
     P = P:gsub('[\\/]$','')
     pwd = pwd or currentdir()
@@ -8671,17 +8682,35 @@ end
 -- In windows, if HOME isn't set, then USERPROFILE is used in preference to
 -- HOMEDRIVE HOMEPATH. This is guaranteed to be writeable on all versions of Windows.
 -- @string P A file path
+-- @treturn[1] string The file path with the `~` prefix substituted, or the input path if it had no prefix.
+-- @treturn[2] nil
+-- @treturn[2] string Error message if the environment variables were unavailable.
 function path.expanduser(P)
     assert_string(1,P)
-    if at(P,1) == '~' then
-        local home = getenv('HOME')
-        if not home then -- has to be Windows
-            home = getenv 'USERPROFILE' or (getenv 'HOMEDRIVE' .. getenv 'HOMEPATH')
-        end
-        return home..sub(P,2)
-    else
+    if P:sub(1,1) ~= '~' then
         return P
     end
+
+    local home = getenv('HOME')
+    if (not home) and (not path.is_windows) then
+        -- no more options to try on Nix
+        return nil, "failed to expand '~' (HOME not set)"
+    end
+
+    if (not home) then
+        -- try alternatives on Windows
+        home = getenv 'USERPROFILE'
+        if not home then
+            local hd = getenv 'HOMEDRIVE'
+            local hp = getenv 'HOMEPATH'
+            if not (hd and hp) then
+              return nil, "failed to expand '~' (HOME, USERPROFILE, and HOMEDRIVE and/or HOMEPATH not set)"
+            end
+            home = hd..hp
+        end
+    end
+
+    return home..sub(P,2)
 end
 
 
@@ -8839,7 +8868,7 @@ end
 
 --- an iterator over all permutations of the elements of the given lists.
 -- @param ... list-like tables, they are nil-safe if a length-field `n` is provided (see `utils.pack`)
--- @return an iterator which provides the next permutation as return values in the same order as the provided lists, preceeded by an index
+-- @return an iterator which provides the next permutation as return values in the same order as the provided lists, preceded by an index
 -- @usage
 -- local strs = utils.pack("one", nil, "three")  -- adds an 'n' field for nil-safety
 -- local bools = utils.pack(true, false)
@@ -8977,6 +9006,42 @@ local assert_arg = utils.assert_arg
 
 local original_tostring = tostring
 
+-- Calculate min and max integer supported by lua_Number
+-- Assumptions:
+-- 1. max_int = 2 ^ n - 1
+-- 2. min_int = -max_int
+-- 3. if n > max_int versions with integer support will have
+-- integer overflow and versions without integers will lose least significant bit
+-- Note: if lua_Integer is smaller than lua_Number mantissa string.format('%d')
+-- can throw runtime error
+local max_int, min_int
+local next_cand = 1
+while  next_cand > 0 and next_cand % 2 == 1 do
+  max_int = next_cand
+  min_int = -next_cand
+  next_cand = next_cand * 2 + 1
+end
+
+local function is_integer(value)
+  if _VERSION == "Lua 5.3" or _VERSION == "Lua 5.4" then
+    return mtype(value) == "integer"
+  end
+  if value < min_int or value > max_int then
+    return false
+  end
+  return math.floor(value) == value
+end
+
+local function is_float(value)
+  if _VERSION == "Lua 5.3" or _VERSION == "Lua 5.4" then
+    return mtype(value) == "float"
+  end
+  if value < min_int or value > max_int then
+    return true
+  end
+  return mfloor(value) == value
+end
+
 -- Patch tostring to format numbers with better precision
 -- and to produce cross-platform results for
 -- infinite values and NaN.
@@ -8989,11 +9054,11 @@ local function tostring(value)
         return "Inf"
     elseif value == -mhuge then
         return "-Inf"
-    elseif (_VERSION ~= "Lua 5.3" or mtype(value) == "integer") and mfloor(value) == value then
+    elseif is_integer(value) then
         return ("%d"):format(value)
     else
         local res = ("%.14g"):format(value)
-        if _VERSION == "Lua 5.3" and mtype(value) == "float" and not res:find("%.") then
+        if is_float(value) and not res:find("%.") then
             -- Number is internally a float but looks like an integer.
             -- Insert ".0" after first run of digits.
             res = res:gsub("%d+", "%0.0", 1)
@@ -11289,7 +11354,7 @@ local function _partition(p,delim,fn)
     end
 end
 
---- partition the string using first occurance of a delimiter
+--- partition the string using first occurrence of a delimiter
 -- @string s the string
 -- @string ch delimiter (match as plain string, no patterns)
 -- @return part before ch
@@ -11303,7 +11368,7 @@ function stringx.partition(s,ch)
     return _partition(s,ch,stringx.lfind)
 end
 
---- partition the string p using last occurance of a delimiter
+--- partition the string p using last occurrence of a delimiter
 -- @string s the string
 -- @string ch delimiter (match as plain string, no patterns)
 -- @return part before ch
@@ -11575,7 +11640,7 @@ end
 
 
 
---- Miscelaneous
+--- Miscellaneous
 -- @section misc
 
 --- return an iterator over all lines in a string
@@ -11593,7 +11658,7 @@ function stringx.lines(s)
     return s:gmatch('([^\n]*)\n')
 end
 
---- inital word letters uppercase ('title case').
+--- initial word letters uppercase ('title case').
 -- Here 'words' mean chunks of non-space characters.
 -- @string s the string
 -- @return a string with each word's first letter uppercase
@@ -11614,7 +11679,7 @@ do
   --- Return a shortened version of a string.
   -- Fits string within w characters. Removed characters are marked with ellipsis.
   -- @string s the string
-  -- @int w the maxinum size allowed
+  -- @int w the maximum size allowed
   -- @bool tail true if we want to show the end of the string (head otherwise)
   -- @usage ('1234567890'):shorten(8) == '12345...'
   -- @usage ('1234567890'):shorten(8, true) == '...67890'
@@ -11688,7 +11753,7 @@ end
 
 --- Python-style formatting operator.
 -- Calling `text.format_operator()` overloads the % operator for strings to give
--- Python/Ruby style formated output.
+-- Python/Ruby style formatted output.
 -- This is extended to also do template-like substitution for map-like data.
 --
 -- Note this goes further than the original, and will allow these cases:
@@ -11698,7 +11763,7 @@ end
 -- 3. a map of var=value pairs
 -- 4. a function, as in gsub
 --
--- For the second two cases, it uses $-variable substituion.
+-- For the second two cases, it uses $-variable substitution.
 --
 -- When called, this function will monkey-patch the global `string` metatable by
 -- adding a `__mod` method.
@@ -12799,59 +12864,72 @@ end,
 
 local utils = require 'pl.utils'
 
-local append,format,strsub,strfind,strgsub = table.insert,string.format,string.sub,string.find,string.gsub
+local append, concat = table.insert, table.concat
+local format, strsub, strfind, strgsub, strrep = string.format, string.sub, string.find, string.gsub, string.rep
 
-local APPENDER = "\n__R_size = __R_size + 1; __R_table[__R_size] = "
+local APPENDER = " __R_size = __R_size + 1; __R_table[__R_size] = "
 
+-- When this function returns, `pieces` is guaranteed to hold a complete Lua
+-- statement, meaning that new statements can be appended without creating
+-- invalid Lua code.
 local function parseDollarParen(pieces, chunk, exec_pat, newline)
     local s = 1
     for term, executed, e in chunk:gmatch(exec_pat) do
-        executed = '('..strsub(executed,2,-2)..')'
-        append(pieces, APPENDER..format("%q", strsub(chunk,s, term - 1)))
-        append(pieces, APPENDER..format("__tostring(%s or '')", executed))
+        executed = '(' .. strsub(executed, 2, -2) .. ')'
+        append(pieces, APPENDER .. format("%q;", strsub(chunk, s, term - 1)))
+        append(pieces, APPENDER .. format("__tostring(%s or '');", executed))
         s = e
     end
-    local r
+    local remainder, newlines_removed
     if newline then
-        r = format("%q", strgsub(strsub(chunk,s),"\n",""))
+        remainder, newlines_removed = strgsub(strsub(chunk, s), "\n", "")
     else
-        r = format("%q", strsub(chunk,s))
+        remainder, newlines_removed = strsub(chunk, s), 0
     end
-    if r ~= '""' then
-        append(pieces, APPENDER..r)
+    if remainder ~= "" then
+        append(pieces, APPENDER .. format("%q;", remainder))
+    end
+    if newlines_removed > 0 then
+        append(pieces, strrep("\n", newlines_removed))
     end
 end
 
-local function parseHashLines(chunk,inline_escape,brackets,esc,newline)
-    local exec_pat = "()"..inline_escape.."(%b"..brackets..")()"
+local function parseHashLines(chunk, inline_escape, brackets, esc, newline)
+    -- Escape special characters to avoid invalid expressions
+    inline_escape = utils.escape(inline_escape)
+    esc = utils.escape(esc)
 
-    local esc_pat = esc.."+([^\n]*\n?)"
-    local esc_pat1, esc_pat2 = "^"..esc_pat, "\n"..esc_pat
-    local  pieces, s = {"return function()\nlocal __R_size, __R_table, __tostring = 0, {}, __tostring", n = 1}, 1
+    local exec_pat = "()" .. inline_escape .. "(%b" .. brackets .. ")()"
+
+    local esc_pat = esc .. "+([^\n]*\n?)"
+    local esc_pat1, esc_pat2 = "^" .. esc_pat, "\n" .. esc_pat
+    local pieces, s = {"return function() local __R_size, __R_table, __tostring = 0, {}, __tostring; "}, 1
     while true do
-        local _, e, lua = strfind(chunk,esc_pat1, s)
+        local _, e, lua = strfind(chunk, esc_pat1, s)
         if not e then
             local ss
-            ss, e, lua = strfind(chunk,esc_pat2, s)
-            parseDollarParen(pieces, strsub(chunk,s, ss), exec_pat, newline)
+            ss, e, lua = strfind(chunk, esc_pat2, s)
+            parseDollarParen(pieces, strsub(chunk, s, ss), exec_pat, newline)
             if not e then break end
         end
-        if strsub(lua, -1, -1) == "\n" then lua = strsub(lua, 1, -2) end
-        append(pieces, "\n"..lua)
+        if strsub(lua, -1, -1) ~= "\n" then lua = lua .. "\n" end -- Ensure trailing newline
+        append(pieces, lua)
+        -- since `lua` ends with a newline, there is no danger of subsequent
+        -- statements being gobbled up by comments or being altered
         s = e + 1
     end
-    append(pieces, "\nreturn __R_table\nend")
+    append(pieces, "return __R_table; end")
 
     -- let's check for a special case where there is nothing to template, but it's
     -- just a single static string
     local short = false
-    if (#pieces == 3) and (pieces[2]:find(APPENDER, 1, true) == 1) then
-        pieces = { "return " .. pieces[2]:sub(#APPENDER+1,-1) }
+    if (#pieces == 3) and (strfind(pieces[2], APPENDER, 1, true) == 1) then
+        pieces = { "return " .. strsub(pieces[2], #APPENDER + 1, -1) }
         short = true
     end
     -- if short == true, the generated function will not return a table of strings,
     -- but a single string
-    return table.concat(pieces), short
+    return concat(pieces), short
 end
 
 local template = {}
@@ -12859,33 +12937,34 @@ local template = {}
 --- expand the template using the specified environment.
 -- This function will compile and render the template. For more performant
 -- recurring usage use the two step approach by using `compile` and `ct:render`.
--- There are six special fields in the environment table `env`
---
---   * `_parent`: continue looking up in this table (e.g. `_parent=_G`).
---   * `_brackets`: bracket pair that wraps inline Lua expressions,  default is '()'.
---   * `_escape`: character marking Lua lines, default is '#'
---   * `_inline_escape`: character marking inline Lua expression, default is '$'.
---   * `_chunk_name`: chunk name for loaded templates, used if there
---     is an error in Lua code. Default is 'TMP'.
---   * `_debug`: if truthy, the generated code will be printed upon a render error
---
 -- @string str the template string
--- @tab[opt] env the environment
--- @return `rendered template + nil + source_code`, or `nil + error + source_code`. The last
--- return value (`source_code`) is only returned if the debug option is used.
-function template.substitute(str,env)
+-- @tparam[opt] table env the environment. This table has the following special fields:
+-- @tparam[opt=nil] table env._parent continue looking up in this table (e.g. `_parent=_G`).
+-- @tparam[opt="()"] string env._brackets bracket pair that wraps inline Lua expressions.
+-- @tparam[opt="#"] string env._escape character marking Lua lines.
+-- @tparam[opt="$"] string env._inline_escape character marking inline Lua expression.
+-- @tparam[opt="TMP"] string env._chunk_name chunk name for loaded templates, used if there
+-- is an error in Lua code.
+-- @tparam[opt=false] boolean env._debug if truthy, the generated code will be printed upon a render error.
+-- @treturn[1] string render result
+-- @treturn[1] nil
+-- @treturn[1] string source_code (only if '`env._debug`' was truthy).
+-- @treturn[2] nil
+-- @treturn[2] string error message
+-- @treturn[2] string source_code (only if '`env._debug`' was truthy).
+function template.substitute(str, env)
     env = env or {}
     local t, err = template.compile(str, {
-        chunk_name = rawget(env,"_chunk_name"),
-        escape = rawget(env,"_escape"),
-        inline_escape = rawget(env,"_inline_escape"),
-        inline_brackets = rawget(env,"_brackets"),
-        newline = nil,
-        debug = rawget(env,"_debug")
+        chunk_name = rawget(env, "_chunk_name"),
+        escape = rawget(env, "_escape"),
+        inline_escape = rawget(env, "_inline_escape"),
+        inline_brackets = rawget(env, "_brackets"),
+        newline = false,
+        debug = rawget(env, "_debug")
     })
     if not t then return t, err end
 
-    return t:render(env, rawget(env,"_parent"), rawget(env,"_debug"))
+    return t:render(env, rawget(env, "_parent"), rawget(env, "_debug"))
 end
 
 --- executes the previously compiled template and renders it.
@@ -12894,12 +12973,16 @@ end
 -- @tab[opt] parent continue looking up in this table (e.g. `parent=_G`).
 -- @bool[opt] db if thruthy, it will print the code upon a render error
 -- (provided the template was compiled with the debug option).
--- @return `rendered template + nil + source_code`, or `nil + error + source_code`. The last return value
--- (`source_code`) is only returned if the template was compiled with the debug option.
+-- @treturn[1] string render result
+-- @treturn[1] nil
+-- @treturn[1] string source_code (only if '`env._debug`' was truthy).
+-- @treturn[2] nil
+-- @treturn[2] string error message
+-- @treturn[2] string source_code (only if '`env._debug`' was truthy).
 -- @usage
 -- local ct, err = template.compile(my_template)
 -- local rendered , err = ct:render(my_env, parent)
-local render = function(self, env, parent, db)
+local function render(self, env, parent, db)
     env = env or {}
     if parent then  -- parent is a bit silly, but for backward compatibility retained
         setmetatable(env, {__index = parent})
@@ -12911,25 +12994,27 @@ local render = function(self, env, parent, db)
         if self.code and db then print(self.code) end
         return nil, out, self.code
     end
-    return table.concat(out), nil, self.code
+    return concat(out), nil, self.code
 end
 
 --- compiles the template.
 -- Returns an object that can repeatedly be rendered without parsing/compiling
--- the template again.
--- The options passed in the `opts` table support the following options:
---
---   * `chunk_name`: chunk name for loaded templates, used if there
---     is an error in Lua code. Default is 'TMP'.
---   * `escape`: character marking Lua lines, default is '#'
---   * `inline_escape`: character marking inline Lua expression, default is '$'.
---   * `inline_brackets`: bracket pair that wraps inline Lua expressions, default is '()'.
---   * `newline`: string to replace newline characters, default is `nil` (not replacing newlines).
---   * `debug`: if truthy, the generated source code will be retained within the compiled template object, default is `nil`.
---
--- @string str the template string
--- @tab[opt] opts the compilation options to use
--- @return template object, or `nil + error + source_code`
+-- the template again. Preserves the line layout of the template so that line
+-- numbers in error messages should point to the correct lines in the source
+-- string.
+-- @tparam string str the template string
+-- @tparam[opt] table opts the compilation options to use. This table supports the following options:
+-- @tparam[opt="TMP"] string opts.chunk_name chunk name for loaded templates, used if there
+-- is an error in Lua code.
+-- @tparam[opt="#"] string opts.escape character marking Lua lines.
+-- @tparam[opt="$"] string opts.inline_escape character marking inline Lua expression.
+-- @tparam[opt="()"] string opts.inline_brackets bracket pair that wraps inline Lua expressions.
+-- @tparam[opt=false] boolean opts.newline if truthy, newlines will be stripped from text in the template.
+-- @tparam[opt=false] boolean opts.debug if truthy, the generated code will be printed upon a render error.
+-- @treturn[1] ct compiled template object
+-- @treturn[2] nil
+-- @treturn[2] string error message
+-- @treturn[2] string source_code
 -- @usage
 -- local ct, err = template.compile(my_template)
 -- local rendered , err = ct:render(my_env, parent)
@@ -12940,9 +13025,9 @@ function template.compile(str, opts)
     local inline_escape = opts.inline_escape or '$'
     local inline_brackets = opts.inline_brackets or '()'
 
-    local code, short = parseHashLines(str,inline_escape,inline_brackets,escape,opts.newline)
+    local code, short = parseHashLines(str, inline_escape, inline_brackets, escape, opts.newline)
     local env = { __tostring = tostring }
-    local fn, err = utils.load(code, chunk_name,'t',env)
+    local fn, err = utils.load(code, chunk_name, 't', env)
     if not fn then return nil, err, code end
 
     if short then
@@ -13453,7 +13538,8 @@ local operators
 local _function_factories = {}
 
 
-local utils = { _VERSION = "1.13.1" }
+local utils = { _VERSION = "1.14.0" }
+
 for k, v in pairs(compat) do utils[k] = v  end
 
 --- Some standard patterns
@@ -13571,7 +13657,11 @@ end
 -- @param value1 Value returned if cond is truthy
 -- @param value2 Value returned if cond is falsy
 function utils.choose(cond, value1, value2)
-    return cond and value1 or value2
+    if cond then
+        return value1
+    else
+        return value2
+    end
 end
 
 --- convert an array of values to strings.
@@ -13727,7 +13817,7 @@ end
 -- non-existing values, and/or converting strings/identifiers to other values.
 --
 -- Calling on the object does the same, but returns a soft error; `nil + err`, if
--- the call is succesful (the key exists), it will return the value.
+-- the call is successful (the key exists), it will return the value.
 --
 -- When calling with varargs or an array the values will be equal to the keys.
 -- The enum object is read-only.
@@ -13755,7 +13845,7 @@ end
 --   },
 --
 --   some_method = function(self)
---     return self.ERR.OUT_OF_BOUNDS
+--     return nil, self.ERR.OUT_OF_BOUNDS
 --   end,
 -- }
 --
@@ -14011,6 +14101,11 @@ end
 --- OS functions
 -- @section OS-functions
 
+--- Execute a shell command.
+-- This function is a copy of `compat.execute`.
+-- @class function
+-- @name utils.execute
+
 --- execute a shell command and return the output.
 -- This function redirects the output to tempfiles and returns the content of those files.
 -- @param cmd a shell command
@@ -14121,7 +14216,7 @@ end
 -- @param s The input string
 -- @param re optional A Lua string pattern; defaults to '%s+'
 -- @param plain optional If truthy don't use Lua patterns
--- @param n optional maximum number of elements (if there are more, the last will remian un-split)
+-- @param n optional maximum number of elements (if there are more, the last will remain un-split)
 -- @return a list-like table
 -- @raise error if s is not a string
 -- @see splitv
@@ -14175,8 +14270,8 @@ end
 -- This is useful if you have a function which is relatively expensive,
 -- but you don't know in advance what values will be required, so
 -- building a table upfront is wasteful/impossible.
--- @param func a function of at least one argument
--- @return a function with at least one argument, which is used as the key.
+-- @param func a function that takes exactly one argument (which later serves as the cache key) and returns a single value
+-- @return a function taking one argument and returning a single value either from the cache or by running the original input function
 function utils.memoize(func)
     local cache = {}
     return function(k)
